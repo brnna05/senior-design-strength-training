@@ -451,7 +451,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "kicad for wearable.kicad_pro",
+    "filename": "wearable.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -609,6 +609,11 @@
     "subpart_first_id": 65,
     "subpart_id_separator": 0
   },
-  "sheets": [],
+  "sheets": [
+    [
+      "81026750-4f07-481e-af5d-190fa85978a1",
+      "Root"
+    ]
+  ],
   "text_variables": {}
 }
