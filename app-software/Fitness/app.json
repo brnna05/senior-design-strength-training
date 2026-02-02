@@ -1,0 +1,7 @@
+{
+  "name": "Fitness",
+  "displayName": "Fitness",
+  "plugins": [
+    "expo-asset"
+  ]
+}
