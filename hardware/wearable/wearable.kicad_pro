@@ -613,6 +613,14 @@
     [
       "81026750-4f07-481e-af5d-190fa85978a1",
       "Root"
+    ],
+    [
+      "add5146d-7ec5-4c1a-b515-fc923a5642d6",
+      "pcb"
+    ],
+    [
+      "f7be8c5b-894c-4046-a913-b3bc16d341b8",
+      "sketch"
     ]
   ],
   "text_variables": {}
