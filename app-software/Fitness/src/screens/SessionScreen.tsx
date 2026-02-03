@@ -4,19 +4,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 const SessionScreen = () => {
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Live Workout Session</Text>
-        <Text style={styles.subtitle}>Ready to train?</Text>
-      </View>
+      <Text style={styles.title}>Live Session</Text>
       
       <View style={styles.centerContent}>
-        <View style={styles.timerContainer}>
-          <Text style={styles.timer}>00:00</Text>
-          <Text style={styles.timerLabel}>Duration</Text>
-        </View>
-        
         <TouchableOpacity style={styles.startButton}>
-          <Text style={styles.startButtonText}>Start Workout</Text>
+          <Text style={styles.startButtonText}>Start a workout</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -26,53 +18,33 @@ const SessionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e0e0e0',
-  },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#e4e4e4',
+    backgroundColor: 'white',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#aaa',
-    marginTop: 5,
+    padding: 20,
+    paddingTop: 65,
+    backgroundColor: 'white',
   },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  timerContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  timer: {
-    fontSize: 72,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  timerLabel: {
-    fontSize: 16,
-    color: '#888',
-    marginTop: 10,
-  },
   startButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#D6E0D3',
     paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 30,
     marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#636363',
   },
   startButtonText: {
-    color: 'white',
+    color: 'black',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 });
 

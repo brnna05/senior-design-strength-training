@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 const PlannerScreen = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Workout Planner</Text>
+      <Text style={styles.title}>Planner</Text>
       <ScrollView style={styles.content}>
         <Text style={styles.placeholder}>
           TODO: Add a planner interface here.
@@ -17,13 +17,13 @@ const PlannerScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'white',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 65,
     backgroundColor: 'white',
   },
   content: {
