@@ -29,8 +29,6 @@ const HistoryScreen = () => {
           message="Incorrect form detected during your bench press session."
         />
 
-        <Text style={styles.heading}>Achievements</Text>
-
       </ScrollView>
     </View>
   );
@@ -51,7 +49,7 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: '600',
-    padding: 20
+    padding: 10
   },
   content: {
     flex: 1,
@@ -64,8 +62,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 50,
   },
-  insightsBox: {
-  }
 });
 
 export default HistoryScreen;
