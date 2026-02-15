@@ -15,13 +15,13 @@
 int main(void)
 {
     if(ADC_init()){
-        printk("ADC_Init failed. Trying again.");
-    } // retry until ADC_Init succeeds
+        printk("ADC_Init failed.\n");
+        return -1;
+    }
     
     printk("timestamp (ms), ADC_reading (mV)\n");
     while (1) {
-        ADC_print();
-        k_msleep(1000);
+        k_sleep(K_FOREVER);
     }
 
     return 0;

@@ -3,6 +3,9 @@
 #include <zephyr/sys/printk.h>
 #include "ADC.h"
 
+#define ADC_FREQUENCY 1000 /* TODO: change to ~4k for final */
+#define ADC_PERIOD K_USEC(1000000 / ADC_FREQUENCY) 
+
 /* Use 16-bit values for ADC readings */
 uint16_t channel_reading[SEQUENCE_SAMPLES];
 
@@ -21,11 +24,20 @@ struct adc_sequence sequence = {
     .channels = 0,  /* changed in init */
 };
 
-uint32_t count;
+static struct k_work adc_work;
+
+void ADC_handler(struct k_timer *timer_id) {
+    k_work_submit(&adc_work);
+}
+
+void adc_work_handler(struct k_work *work) {
+    ADC_print();  
+}
+
+K_TIMER_DEFINE(adc_timer, ADC_handler, NULL);
 
 int ADC_init() {
     int err;
-    count = 0;
     
     if (!device_is_ready(adc)) {
         printk("ADC controller device %s not ready\n", adc->name);
@@ -44,6 +56,10 @@ int ADC_init() {
     if ((vrefs_mv[0] == 0) && (channel_cfgs[0].reference == ADC_REF_INTERNAL)) {
         vrefs_mv[0] = adc_ref_internal(adc);
     }
+
+    /* Initialize timer */
+    k_work_init(&adc_work, adc_work_handler);
+    k_timer_start(&adc_timer, ADC_PERIOD, ADC_PERIOD);
     
     return 0;
 }
