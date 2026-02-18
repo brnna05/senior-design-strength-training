@@ -6,4 +6,5 @@ project(firmware)
 target_sources(app PRIVATE 
     src/main.c
     src/ADC.c
+    src/IMU.c
 )
