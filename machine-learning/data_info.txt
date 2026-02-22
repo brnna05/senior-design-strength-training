@@ -1,0 +1,18 @@
+rtt_log_20260218_132615.csv, Mario, N/A
+rtt_log_20260218_133000.csv, Mario, 5lbs
+rtt_log_20260218_133137.csv, Mario, 5lbs
+rtt_log_20260218_133349.csv, Brianna, 5lbs
+rtt_log_20260218_133702.csv, Tyler, 5lbs
+rtt_log_20260218_134209.csv, Brianna, no weight
+rtt_log_20260218_135612.csv, Mario, 2 slow and 2 fast
+rtt_log_20260218_140317.csv, Mario, no weight
+rtt_log_20260218_140859.csv, Mario, gradual
+rtt_log_20260218_141358.csv, Tyler, 2 slow and 2 med
+rtt_log_20260218_141500.csv, Tyler, no weight
+rtt_log_20260218_141545.csv, Tyler, gradual
+rtt_log_20260218_142350.csv, Brianna, 5lbs
+rtt_log_20260218_142451.csv, Brianna, no weight
+rtt_log_20260218_151234.csv, Brianna, gradual
+rtt_log_20260218_151325.csv, Joanna, 5lbs
+rtt_log_20260218_151431.csv, Joanna, 2 slow then fast
+rtt_log_20260218_151523.csv, Joanna, no weight
