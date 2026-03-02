@@ -15,8 +15,6 @@ const DEFAULT_SETS = 3;
 const DEFAULT_REPS = 10;
 const BREAK_DURATION_SEC = 60;
 
-// ── Stepper extracted outside SessionScreen so React doesn't treat it as a
-//    new component type on every render (which breaks the rules of hooks)
 interface StepperProps {
   label: string;
   value: number;
@@ -43,8 +41,6 @@ const Stepper: React.FC<StepperProps> = ({ label, value, onDecrement, onIncremen
   </View>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 const SessionScreen = () => {
   const { saveWorkout } = useWorkouts();
 
@@ -55,6 +51,7 @@ const SessionScreen = () => {
   const [currentRep, setCurrentRep] = useState(1);
   const [completedSets, setCompletedSets] = useState<number[]>([]);
   const [setLog, setSetLog] = useState<CompletedSet[]>([]);
+  const [summaryLog, setSummaryLog] = useState<CompletedSet[]>([]);
   const [breakSecondsLeft, setBreakSecondsLeft] = useState(BREAK_DURATION_SEC);
   const [breakTimer, setBreakTimer] = useState<ReturnType<typeof setInterval> | null>(null);
   const [summaryVisible, setSummaryVisible] = useState(false);
@@ -111,9 +108,11 @@ const SessionScreen = () => {
 
     const log = finalSetLog ?? setLog;
     const logWithPartial =
-      phase === 'working' && currentRep > 1 && !finalSetLog
+      (phase === 'working' || phase === 'break') && currentRep > 1 && !finalSetLog
         ? [...log, { setNumber: currentSet, repsCompleted: currentRep - 1 }]
         : log;
+
+    setSummaryLog(logWithPartial);
 
     if (logWithPartial.length > 0) {
       saveWorkout({
@@ -272,25 +271,18 @@ const SessionScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Live Session</Text>
-      <View style={styles.centerContent}>
-        <Text style={styles.exerciseLabel}>Workout Complete 🎉</Text>
-        <TouchableOpacity style={styles.startButton} onPress={resetSession}>
-          <Text style={styles.startButtonText}>Start New Workout</Text>
-        </TouchableOpacity>
-      </View>
-
       <Modal visible={summaryVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Workout Summary</Text>
             <Text style={styles.summaryLine}>Exercise: Bicep Curl</Text>
             <Text style={styles.summaryLine}>
-              Sets Completed: {setLog.length} / {totalSets}
+              Sets Completed: {summaryLog.length} / {totalSets}
             </Text>
             <Text style={styles.summaryLine}>
-              Total Reps: {setLog.reduce((sum, s) => sum + s.repsCompleted, 0)}
+              Total Reps: {summaryLog.reduce((sum, s) => sum + s.repsCompleted, 0)}
             </Text>
-            {setLog.map(s => (
+            {summaryLog.map(s => (
               <Text key={s.setNumber} style={styles.summarySetLine}>
                 Set {s.setNumber}: {s.repsCompleted} reps
               </Text>

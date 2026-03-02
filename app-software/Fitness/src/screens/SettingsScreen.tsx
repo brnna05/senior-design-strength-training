@@ -1,9 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Button, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
+
+type SettingsMode = 'idle' | 'profile' | 'data';
 
 const SettingsScreen = () => {
-  const [darkMode, setDarkMode] = React.useState(false);
-  const [difficulty, setDifficulty] = React.useState(false);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <View style={styles.container}>
@@ -14,8 +18,14 @@ const SettingsScreen = () => {
           <Text style={styles.sectionTitle}>Account</Text>
           <Text style={styles.settingItem}>Profile</Text>
           <Text style={styles.settingItem}>Data Management</Text>
-          <Text style={styles.settingItem}>Sync Settings</Text>
-          <Text style={styles.settingItem}>Logout</Text>
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={() => {
+              navigation.replace('Login');
+            }}
+          >
+            <Text style={styles.settingItem}>Log Out</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -80,6 +90,11 @@ const styles = StyleSheet.create({
   settingValue: {
     fontSize: 14,
     color: '#666',
+  },
+  logoutButton: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    width: '100%',
   },
 });
 
