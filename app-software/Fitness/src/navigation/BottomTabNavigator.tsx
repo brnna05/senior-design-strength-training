@@ -3,13 +3,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 // Screens
 import HistoryScreen from '../screens/HistoryScreen';
-import PlannerScreen from '../screens/PlannerScreen';
+// import PlannerScreen from '../screens/PlannerScreen';
 import SessionScreen from '../screens/SessionScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 // Logos
 import HistoryIcon from '../assets/icons/history.svg';
-import PlannerIcon from '../assets/icons/planner.svg';
+// import PlannerIcon from '../assets/icons/planner.svg';
 import SessionIcon from '../assets/icons/session.svg';
 import SettingsIcon from '../assets/icons/settings.svg';
 
@@ -47,17 +47,17 @@ const BottomTabNavigator = () => {
         }}
       />
 
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Planner"
         component={PlannerScreen}
         options={{ tabBarIcon: ({ color, size }) => (
           <PlannerIcon width={size} height={size} fill={color} />
           ),
         }}
-      />
+      /> */}
 
       <Tab.Screen
-        name="Session"
+        name="Workout"
         component={SessionScreen}
         options={{ tabBarIcon: ({ color, size }) => (
           <SessionIcon width={size} height={size} fill={color} />

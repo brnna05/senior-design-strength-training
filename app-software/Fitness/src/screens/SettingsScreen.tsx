@@ -25,30 +25,6 @@ const SettingsScreen = () => {
             <Text style={styles.settingValue}>Not Connected</Text>
           </View>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Dark Mode</Text>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#767577', true: '#4CAF50' }}
-            />
-          </View>
-          <View style={styles.settingItem}>
-            <View style={styles.textContainer}>
-              <Text style={styles.settingLabel}>Difficulty</Text>
-              <Text style={styles.settingDescription}>Advanced mode will show specific muscle groups</Text>
-            </View>
-            <Switch
-              value={difficulty}
-              onValueChange={setDifficulty}
-              trackColor={{ false: '#767577', true: '#4CAF50' }}
-            />
-          </View>
-
-        </View>
       </ScrollView>
     </View>
   );
