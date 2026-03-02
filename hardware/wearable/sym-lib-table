@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "seniorDes")(type "KiCad")(uri "${KIPRJMOD}/seniorDes.kicad_sym")(options "")(descr ""))
+  (lib (name "imuImport")(type "KiCad")(uri "${KIPRJMOD}/imuImport.kicad_sym")(options "")(descr ""))
+)

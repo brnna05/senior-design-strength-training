@@ -1,0 +1,246 @@
+(footprint "32mhzCrystal"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "NX3225SA-32.000MHZ-STD-CSR-1-1")
+	(tags "Crystal or Oscillator")
+	(property "Reference" "Y**"
+		(at -0.35 0 0)
+		(layer "F.SilkS")
+		(uuid "6add3f62-346b-4340-a056-a16fdd976696")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.254)
+			)
+		)
+	)
+	(property "Value" "32mhzCrystal"
+		(at -0.35 0 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "7d89d7fa-c842-48b7-a5a8-c875d92997bd")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.254)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "557cd932-4055-4278-a653-f018439c4552")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c8a9b470-d60d-4b0c-ba64-dba46eb3f6e9")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -2.5 0.8)
+		(end -2.5 0.8)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "0e7701a0-0985-44c3-b4a5-684fa337b68c")
+	)
+	(fp_line
+		(start -2.5 0.8)
+		(end -2.5 0.8)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "3e6d78c2-ed00-4212-9483-bd5ace498223")
+	)
+	(fp_line
+		(start -2.4 0.8)
+		(end -2.4 0.8)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "42f725cd-0d79-44d3-b412-aaa15ced2f8b")
+	)
+	(fp_arc
+		(start -2.5 0.8)
+		(mid -2.45 0.75)
+		(end -2.4 0.8)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "7463b1a6-7061-4f8b-9f47-149d3dc1fc81")
+	)
+	(fp_arc
+		(start -2.4 0.8)
+		(mid -2.45 0.85)
+		(end -2.5 0.8)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "302a7771-6525-496c-ae68-713cf14f922f")
+	)
+	(fp_arc
+		(start -2.4 0.8)
+		(mid -2.45 0.85)
+		(end -2.5 0.8)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "fbe3a2a1-04d2-4ac4-a429-d49f9f629ad1")
+	)
+	(fp_line
+		(start -3.5 -2.4)
+		(end 2.8 -2.4)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "8bf59c80-3468-41b3-8ee3-3244608a9f93")
+	)
+	(fp_line
+		(start -3.5 2.4)
+		(end -3.5 -2.4)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "360c6b25-8129-40b8-a289-432a15ef65e9")
+	)
+	(fp_line
+		(start 2.8 -2.4)
+		(end 2.8 2.4)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "06915c2a-abed-45fa-a103-35289e6909e7")
+	)
+	(fp_line
+		(start 2.8 2.4)
+		(end -3.5 2.4)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "634cce00-b070-4792-8e97-8e23ff663801")
+	)
+	(fp_line
+		(start -1.6 -1.25)
+		(end -1.6 1.25)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "cc2b7d87-1185-4fc9-90a9-c4e31045dfc2")
+	)
+	(fp_line
+		(start -1.6 1.25)
+		(end 1.6 1.25)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "46d6cf1f-e887-4ef5-a0eb-d63e370b25d3")
+	)
+	(fp_line
+		(start 1.6 -1.25)
+		(end -1.6 -1.25)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "23103f5c-115e-4cb1-944a-0ed5d5cafade")
+	)
+	(fp_line
+		(start 1.6 1.25)
+		(end 1.6 -1.25)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "9d3c67e1-dc3c-420b-a4c1-69a5f63ea8be")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -0.35 0 0)
+		(layer "F.Fab")
+		(uuid "74f322f7-c66e-4c2f-ab3b-cd4cf218fd59")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.254)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -1.1 0.8 90)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "706f5560-5546-46ee-a9cc-2800a98fa791")
+	)
+	(pad "2" smd rect
+		(at 1.1 0.8 90)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "9bff6013-b903-4469-b1de-4b3810e56172")
+	)
+	(pad "3" smd rect
+		(at 1.1 -0.8 90)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "a31f8980-da26-4f6b-b22f-a35dcedcd61d")
+	)
+	(pad "4" smd rect
+		(at -1.1 -0.8 90)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "5d1d05cd-a6a7-4888-aa78-2c105e44a225")
+	)
+	(embedded_fonts no)
+	(model "NX3225SA-32.000MHZ-STD-CSR-1.stp"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
