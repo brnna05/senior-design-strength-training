@@ -210,7 +210,7 @@ void ADC_print() {
 
     val_mv = sum / SEQUENCE_SAMPLES;
 
-    printk("%lld, %d, %d, %d, %d, %d, %d, %d, %d.%06d\n", 
+    printk("%lld, %d, %d, %d, %d, %d, %d, %d, %d\n", 
         timestamp_us, val_mv, 
     #if IMU_ON
         imu_data->accel_x, imu_data->accel_y, imu_data->accel_z,
@@ -219,9 +219,9 @@ void ADC_print() {
         0, 0, 0, 0, 0, 0,
     #endif
     #if PPG_ON
-        ppg_data->val1, ppg_data->val2
+        ppg_data->val1
     #else
-        0, 0
+        0
     #endif
         );
 }

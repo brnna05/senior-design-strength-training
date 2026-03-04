@@ -329,9 +329,6 @@ static int max30102_init(const struct device *dev)
 DT_INST_FOREACH_STATUS_OKAY(MAX30102_DEFINE)
 
 static struct k_work ppg_work;
-static struct gpio_callback gpio_cb;
-
-K_TIMER_DEFINE(ppg_timer, PPG_handler, NULL);
 
 /* Timer Callback (interrupt context) */
 void PPG_handler(struct k_timer *timer_id)
@@ -345,6 +342,7 @@ static void ppg_work_handler(struct k_work *work)
     ppg_read();
 }
 
+K_TIMER_DEFINE(ppg_timer, PPG_handler, NULL);
 
 int ppg_init(int sample_rate_hz)
 {

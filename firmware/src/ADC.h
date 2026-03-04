@@ -21,7 +21,7 @@
 #define EMG_FATIGUE_ZCR_LOW           10   /* crossings/window below this = fatigue indicator */
 
 #define ADC_ON 1
-#define PPG_ON 0
+#define PPG_ON 1
 #define IMU_ON 1
 #define BLE_ON 0
 
