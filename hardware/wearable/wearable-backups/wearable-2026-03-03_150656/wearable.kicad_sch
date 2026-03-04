@@ -1,0 +1,98 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "81026750-4f07-481e-af5d-190fa85978a1")
+	(paper "A4")
+	(lib_symbols)
+	(sheet
+		(at 22.86 26.67)
+		(size 60.96 50.8)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "add5146d-7ec5-4c1a-b515-fc923a5642d6")
+		(property "Sheetname" "pcb"
+			(at 22.86 25.9584 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "pcb.kicad_sch"
+			(at 22.86 78.0546 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 22.86 92.71)
+		(size 60.96 50.8)
+		(exclude_from_sim yes)
+		(in_bom no)
+		(on_board no)
+		(dnp yes)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "f7be8c5b-894c-4046-a913-b3bc16d341b8")
+		(property "Sheetname" "sketch"
+			(at 22.86 91.9984 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "sketch.kicad_sch"
+			(at 22.86 144.0946 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)
