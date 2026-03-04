@@ -45,6 +45,10 @@ LOG_MODULE_REGISTER(MAX30102, CONFIG_SENSOR_LOG_LEVEL);
 static int32_t bpm_history[HR_AVG_SIZE] = {0};
 static uint8_t bpm_history_idx = 0;
 static uint8_t bpm_history_count = 0;
+struct sensor_value ir_val;
+
+/* Devices */
+const struct device *dev = DEVICE_DT_GET_ANY(maxim_max30102);
 
 static int32_t max30102_calc_heart_rate(struct max30102_data *data)
 {
@@ -324,19 +328,39 @@ static int max30102_init(const struct device *dev)
 
 DT_INST_FOREACH_STATUS_OKAY(MAX30102_DEFINE)
 
-/* ══════════════════════════════════════════════════════════════════════════
- * APPLICATION LAYER
- * Called from main.c
- * ══════════════════════════════════════════════════════════════════════════ */
+static struct k_work ppg_work;
+static struct gpio_callback gpio_cb;
 
-int ppg_init(void)
+K_TIMER_DEFINE(ppg_timer, PPG_handler, NULL);
+
+/* Timer Callback (interrupt context) */
+void PPG_handler(struct k_timer *timer_id)
 {
-    const struct device *dev = DEVICE_DT_GET_ANY(maxim_max30102);
+    k_work_submit(&ppg_work);
+}
 
+/* Work Handler (work queue thread) */
+static void ppg_work_handler(struct k_work *work)
+{
+    ppg_read();
+}
+
+
+int ppg_init(int sample_rate_hz)
+{
     if (!device_is_ready(dev)) {
         printk("MAX30102 not ready\n");
         return -1;
     }
+    ir_val.val1 = 0;
+    ir_val.val2 = 0;
+
+    /* Start periodic sampling timer */
+    uint32_t ppg_period_us = 1000000U / (uint32_t)sample_rate_hz;
+    k_work_init(&ppg_work, ppg_work_handler);
+    k_timer_start(&ppg_timer, K_USEC(ppg_period_us), K_USEC(ppg_period_us));
+
+    printk("PPG: initialized at %d Hz\n", sample_rate_hz);
 
     printk("MAX30102 ready\n");
     return 0;
@@ -344,9 +368,6 @@ int ppg_init(void)
 
 void ppg_read(void)
 {
-    const struct device *dev = DEVICE_DT_GET_ANY(maxim_max30102);
-    struct sensor_value ir_val;
-
     int ret = sensor_sample_fetch(dev);
     if (ret < 0) {
         printk("MAX30102 fetch failed: %d\n", ret);
@@ -354,5 +375,7 @@ void ppg_read(void)
     }
 
     sensor_channel_get(dev, SENSOR_CHAN_IR, &ir_val);
-    printk("IR: %d\n", ir_val.val1);
+    //printk("IR: %d\n", ir_val.val1);
 }
+
+struct sensor_value *ppg_get_data(void) { return &ir_val; }

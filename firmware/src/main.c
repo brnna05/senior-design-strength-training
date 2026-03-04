@@ -4,11 +4,7 @@
 
 #include "PPG.h"
 #include "LSM6DS3TR.h"
-
-#define ADC_ON 1
-#define PPG_ON 0
-#define IMU_ON 0
-#define BLE_ON 0
+#include "ADC.h"
 
 #if BLE_ON
 static const struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(
@@ -38,7 +34,7 @@ int main(void)
 
 #if PPG_ON
     /* PPG init */
-    if (ppg_init()) {
+    if (ppg_init(200)) {
         printk("PPG_Init failed.\n");
         return -1;
     }

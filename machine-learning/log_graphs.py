@@ -23,6 +23,13 @@ def plot_csv(file_path):
         df = pd.read_csv(file_path, header=None)
         time = df.iloc[:, 0]
         voltage = df.iloc[:, 1]
+        accel_x = df.iloc[:, 2] if df.shape[1] > 2 else None
+        accel_y = df.iloc[:, 3] if df.shape[1] > 3 else None
+        accel_z = df.iloc[:, 4] if df.shape[1] > 4 else None
+        gyro_x = df.iloc[:, 5] if df.shape[1] > 5 else None
+        gyro_y = df.iloc[:, 6] if df.shape[1] > 6 else None
+        gyro_z = df.iloc[:, 7] if df.shape[1] > 7 else None
+        ppg_val = df.iloc[:, 8] if df.shape[1] > 8 else None
 
     plt.figure()
     plt.plot(time, voltage)

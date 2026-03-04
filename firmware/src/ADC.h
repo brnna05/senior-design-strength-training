@@ -13,19 +13,17 @@
 /* ── ADC device-tree ─────────────────────────────────────────────────────── */
 #define ADC_NODE        DT_ALIAS(adc0)
 #define CHANNEL_VREF(node_id) DT_PROP_OR(node_id, zephyr_vref_mv, 0)
-
-static const struct device *adc = DEVICE_DT_GET(ADC_NODE);
-static const struct adc_channel_cfg channel_cfgs[] = {
-    DT_FOREACH_CHILD_SEP(ADC_NODE, ADC_CHANNEL_CFG_DT, (,))};
-static uint32_t vrefs_mv[] = {
-    DT_FOREACH_CHILD_SEP(ADC_NODE, CHANNEL_VREF, (,))};
-
 #define CHANNEL_COUNT 1
 
 /* ── EMG activation thresholds ───────────────────────────────────────────── */
 /* Tune these to your electrode placement / gain stage */
 #define EMG_ACTIVATION_THRESHOLD_MV   20   /* RMS above this = muscle active  */
 #define EMG_FATIGUE_ZCR_LOW           10   /* crossings/window below this = fatigue indicator */
+
+#define ADC_ON 1
+#define PPG_ON 0
+#define IMU_ON 1
+#define BLE_ON 0
 
 /* ── EMG result struct ───────────────────────────────────────────────────── */
 /**
@@ -61,7 +59,7 @@ typedef struct {
 /* ── Public API ──────────────────────────────────────────────────────────── */
 
 /* Initializes ADC for channels in overlay */
-int ADC_init();
+int ADC_init(void);
 
 /**
  * Reads one window of SEQUENCE_SAMPLES, converts to mV, and returns

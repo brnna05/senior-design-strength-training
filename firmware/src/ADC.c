@@ -3,6 +3,8 @@
 #include <zephyr/sys/printk.h>
 #include <math.h>
 #include "ADC.h"
+#include "LSM6DS3TR.h"
+#include "PPG.h"
 
 #define ADC_FREQUENCY   4000
 #define ADC_PERIOD      K_USEC(1000000 / ADC_FREQUENCY)
@@ -22,6 +24,12 @@ static struct adc_sequence sequence = {
     .channels    = 0,
 };
 
+static const struct device *adc = DEVICE_DT_GET(ADC_NODE);
+static const struct adc_channel_cfg channel_cfgs[] = {
+    DT_FOREACH_CHILD_SEP(ADC_NODE, ADC_CHANNEL_CFG_DT, (,))};
+static uint32_t vrefs_mv[] = {
+    DT_FOREACH_CHILD_SEP(ADC_NODE, CHANNEL_VREF, (,))};
+
 // Periodic timer handlers
 static struct k_work adc_work;
 
@@ -32,7 +40,7 @@ static void ADC_handler(struct k_timer *timer_id)
 
 static void adc_work_handler(struct k_work *work)
 {
-    EMG_print();
+    ADC_print();
 }
 
 K_TIMER_DEFINE(adc_timer, ADC_handler, NULL);
@@ -50,6 +58,9 @@ static uint32_t isqrt32(uint32_t n)
 }
 
 /* Initialises ADC hardware and starts the periodic sampling timer. */
+static imu_data_t *imu_data;
+static struct sensor_value *ppg_data;
+
 int ADC_init(void)
 {
     int err;
@@ -69,6 +80,8 @@ int ADC_init(void)
     if ((vrefs_mv[0] == 0) && (channel_cfgs[0].reference == ADC_REF_INTERNAL)) {
         vrefs_mv[0] = adc_ref_internal(adc);
     }
+    imu_data = IMU_get_data();
+    ppg_data = ppg_get_data();
 
     /* Initialize timer */
     k_work_init(&adc_work, adc_work_handler);
@@ -197,5 +210,18 @@ void ADC_print() {
 
     val_mv = sum / SEQUENCE_SAMPLES;
 
-    printk("%lld, %d\n", timestamp_us, val_mv);
+    printk("%lld, %d, %d, %d, %d, %d, %d, %d, %d.%06d\n", 
+        timestamp_us, val_mv, 
+    #if IMU_ON
+        imu_data->accel_x, imu_data->accel_y, imu_data->accel_z,
+        imu_data->gyro_x, imu_data->gyro_y, imu_data->gyro_z,
+    #else
+        0, 0, 0, 0, 0, 0,
+    #endif
+    #if PPG_ON
+        ppg_data->val1, ppg_data->val2
+    #else
+        0, 0
+    #endif
+        );
 }

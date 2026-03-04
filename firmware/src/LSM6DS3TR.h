@@ -24,9 +24,6 @@ typedef struct {
     int32_t gyro_x;
     int32_t gyro_y;
     int32_t gyro_z;
-
-    /* Timestamp (ms) */
-    int64_t timestamp_ms;
 } imu_data_t;
 
 /* ── Function Declarations ──────────────────────────────────────────────── */
@@ -35,8 +32,11 @@ typedef struct {
  * and starts periodic sampling timer at sample_rate_hz */
 int IMU_init(int sample_rate_hz);
 
-/* Reads accel + gyro and prints to RTT */
-void IMU_print(void);
+/* Samples and stores IMU data */
+void IMU_sample(void);
+
+/* Returns pointer to latest IMU data struct */
+imu_data_t *IMU_get_data(void);
 
 /* Timer callback — do not call directly */
 void IMU_handler(struct k_timer *timer_id);

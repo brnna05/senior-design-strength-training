@@ -64,16 +64,17 @@ struct max30102_config {
 };
 
 /* ── Data Struct ────────────────────────────────────────────────────────── */
-struct max30102_data {
+typedef struct max30102_data {
     uint32_t raw[MAX30102_MAX_NUM_CHANNELS];
     uint32_t ir_buffer[HR_BUFFER_SIZE];
     uint8_t  ir_buf_idx;
     bool     ir_buf_full;
     int32_t  bpm;
-};
+} ppg_data_t;
 
 /* ── Application API ────────────────────────────────────────────────────── */
-int ppg_init(void);
+int ppg_init(int sample_rate_hz);
 void ppg_read(void);
+struct sensor_value *ppg_get_data(void);
 
 #endif /* PPG_H */
