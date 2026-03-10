@@ -1,0 +1,30 @@
+description: Maxim MAX30102 PPG Sensor
+
+compatible: "maxim,max30102"
+
+include: i2c-device.yaml
+
+properties:
+  smp-ave:
+    type: int
+    required: true
+  fifo-rollover-en:
+    type: boolean
+  fifo-a-full:
+    type: int
+    required: true
+  mode:
+    type: int
+    required: true
+  adc-rge:
+    type: int
+    required: true
+  sr:
+    type: int
+    required: true
+  led1-pa:
+    type: int
+    required: true
+  led2-pa:
+    type: int
+    required: true
