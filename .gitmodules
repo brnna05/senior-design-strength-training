@@ -1,6 +1,0 @@
-[submodule "firmware_path"]
-	path = firmware_path
-	url = C:\\Users\\Aura\\nordicProjects\\firmware
-[submodule "firmware"]
-	path = firmware
-	url = https://github.com/iAurq/firmware
