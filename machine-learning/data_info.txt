@@ -1,3 +1,5 @@
+timestampe, emg voltage, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, ppg_ir
+
 rtt_log_20260218_132615.csv, Mario, N/A
 rtt_log_20260218_133000.csv, Mario, 5lbs
 rtt_log_20260218_133137.csv, Mario, 5lbs
@@ -16,3 +18,33 @@ rtt_log_20260218_151234.csv, Brianna, gradual
 rtt_log_20260218_151325.csv, Joanna, 5lbs
 rtt_log_20260218_151431.csv, Joanna, 2 slow then fast
 rtt_log_20260218_151523.csv, Joanna, no weight
+rtt_log_20260304_135931.csv, Brianna, 5 R
+rtt_log_20260311_134615.csv, Speight, 5 R
+rtt_log_20260311_134656.csv, Speight, 10 R
+rtt_log_20260311_134732.csv, Speight, 15 R
+rtt_log_20260311_134810.csv, Speight, 20 R
+rtt_log_20260311_135511.csv, Joanna, 5 R
+rtt_log_20260311_135549.csv, Joanna, 10 R
+rtt_log_20260311_135631.csv, Joanna, 15 R
+rtt_log_20260311_135713.csv, Joanna, 20 R
+rtt_log_20260311_140013.csv, Joanna, 5 L
+rtt_log_20260311_140114.csv, Joanna, 10 L
+rtt_log_20260311_140152.csv, Joanna, 15 L
+rtt_log_20260311_140310.csv, Joanna, 20 L
+rtt_log_20260311_140558.csv, Mario, 5 R
+rtt_log_20260311_140638.csv, Mario, 10 R
+rtt_log_20260311_140713.csv, Mario, 15 R
+rtt_log_20260311_140753.csv, Mario, 20 R
+rtt_log_20260311_141014.csv, Mario, 5 L
+rtt_log_20260311_141048.csv, Mario, 10 L
+rtt_log_20260311_141135.csv, Mario, 15 L
+rtt_log_20260311_141214.csv, Mario, 20 L
+rtt_log_20260311_143722.csv, Tyler, 5 L
+rtt_log_20260311_143920.csv, Tyler, 5 L
+rtt_log_20260311_145424.csv, Tyler, 5 L
+rtt_log_20260311_145458.csv, Tyler, 10 L
+rtt_log_20260311_145541.csv, Tyler, 15 L
+rtt_log_20260311_145630.csv, Tyler, 20 L
+rtt_log_20260311_151015.csv, Tyler, 5 R
+rtt_log_20260311_151058.csv, Tyler, 10 R
+rtt_log_20260311_151141.csv, Tyler, 15 R
