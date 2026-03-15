@@ -4729,7 +4729,7 @@
 							)
 						)
 					)
-					(number ""
+					(number "1"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -6179,6 +6179,86 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "seniorDes:solderPad"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "U"
+				(at 0 6.35 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "solderPad_1_1"
+				(circle
+					(center 0 0)
+					(radius 1.7961)
+					(stroke
+						(width 2)
+						(type solid)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin unspecified line
+					(at 5.08 0 180)
+					(length 2.54)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 	)
 	(text "HPF\nfc = ~15.9Hz\n"
 		(exclude_from_sim no)
@@ -6209,6 +6289,36 @@
 			)
 		)
 		(uuid "7c473ce2-44dc-4228-aecf-b3e636360b9b")
+	)
+	(text "Ag+"
+		(exclude_from_sim no)
+		(at 146.05 51.054 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "b4340ec5-587f-4e70-ba00-e42e763bba2d")
+	)
+	(text "Ag-\n"
+		(exclude_from_sim no)
+		(at 146.05 34.29 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "bd25bb85-e66c-4f8d-bf64-6f4ebd1c5da7")
+	)
+	(text "used to solder snaps on\n(for fabric purposes)"
+		(exclude_from_sim no)
+		(at 107.95 88.646 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "da6b6a2a-2d67-4eb2-ab4a-1f71046a6886")
 	)
 	(text "g = 1 + 50k/Rg\n"
 		(exclude_from_sim no)
@@ -6357,6 +6467,27 @@
 		)
 		(uuid "c5dddee7-65ee-4049-8e90-574c2858973d")
 	)
+	(text_box "Solder Pads"
+		(exclude_from_sim no)
+		(at 90.17 52.07 0)
+		(size 35.56 10.16)
+		(margins 0.9525 0.9525 0.9525 0.9525)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(type none)
+		)
+		(effects
+			(font
+				(size 3 3)
+				(thickness 0.6)
+				(bold yes)
+			)
+		)
+		(uuid "cc55b082-3240-4a82-8af9-2331c00117a0")
+	)
 	(text_box "Battery + Regulator"
 		(exclude_from_sim no)
 		(at 104.14 170.18 0)
@@ -6451,10 +6582,22 @@
 		(uuid "0f707454-73d3-4925-9b1f-bbe0c2e35e70")
 	)
 	(junction
+		(at 26.67 207.01)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "11f25d0f-2d04-4ca0-af56-13eb9b34a60c")
+	)
+	(junction
 		(at 201.93 127)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "12b25ad1-75db-4298-bf15-a8cf088c4bd5")
+	)
+	(junction
+		(at 26.67 201.93)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "13127d29-4c13-4ca2-b8b4-73c659636673")
 	)
 	(junction
 		(at 203.2 26.67)
@@ -6467,12 +6610,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "2117d657-5d36-4ddb-a94c-a78557afdc6b")
-	)
-	(junction
-		(at 107.95 139.7)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "24e3dc89-e146-4d28-a79b-5647cf519cd9")
 	)
 	(junction
 		(at 212.09 127)
@@ -6497,12 +6634,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "2cb34237-1f84-4309-9a43-0ab47362793e")
-	)
-	(junction
-		(at 113.03 139.7)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "2d63e1c6-9dec-4c05-a765-07e0bd55c8b5")
 	)
 	(junction
 		(at 160.02 66.04)
@@ -6535,10 +6666,10 @@
 		(uuid "444d05ef-80f3-4419-81b9-46735b041284")
 	)
 	(junction
-		(at 80.01 212.09)
+		(at 107.95 139.7)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "4aa1cc8d-71a8-4dda-9feb-ae9137f33b49")
+		(uuid "44c810db-c63f-45b0-ac79-c6992e390a14")
 	)
 	(junction
 		(at 163.83 34.29)
@@ -6655,12 +6786,6 @@
 		(uuid "97a2f89d-dd0b-4cf7-b59d-1a2f9510d772")
 	)
 	(junction
-		(at 80.01 209.55)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "9886cf56-ee6a-48f7-b744-e365c40a7a82")
-	)
-	(junction
 		(at 219.71 58.42)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6673,10 +6798,22 @@
 		(uuid "9d4a06c2-e12b-420f-9658-ea63183d14d5")
 	)
 	(junction
+		(at 86.36 139.7)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "9da55395-be68-4fc7-9871-41b6e40b4053")
+	)
+	(junction
 		(at 218.44 147.32)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "a26fb768-0b56-4866-adb3-008bfd0a3f11")
+	)
+	(junction
+		(at 26.67 212.09)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a2a78680-83e0-41e4-9223-2a441dd1bf62")
 	)
 	(junction
 		(at 170.18 58.42)
@@ -6701,12 +6838,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "aca06601-b92e-4a65-8161-9436d3353632")
-	)
-	(junction
-		(at 80.01 207.01)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "acb0cb99-74d1-45cd-87a4-e17580e3a5c6")
 	)
 	(junction
 		(at 204.47 208.28)
@@ -6857,8 +6988,16 @@
 		(uuid "62e940fb-8e1d-489d-a729-bceabc4ed011")
 	)
 	(no_connect
+		(at 105.41 80.01)
+		(uuid "645c2b85-7c09-41f1-bd9e-35835961feb0")
+	)
+	(no_connect
 		(at 285.75 125.73)
 		(uuid "6e0c5ecf-8c19-4e95-b654-230333eb45cc")
+	)
+	(no_connect
+		(at 118.11 69.85)
+		(uuid "74f594e2-e3c0-4057-befc-94803d2fd9c9")
 	)
 	(no_connect
 		(at 139.7 205.74)
@@ -6869,8 +7008,16 @@
 		(uuid "81298cf7-32a0-4d04-8368-0d66d82a9c08")
 	)
 	(no_connect
+		(at 105.41 69.85)
+		(uuid "8bf89b24-7cfe-44be-8366-26421ddf3db5")
+	)
+	(no_connect
 		(at 163.83 129.54)
 		(uuid "8f995cf2-e883-4d92-9458-321522a1c81f")
+	)
+	(no_connect
+		(at 118.11 80.01)
+		(uuid "97a1e035-487a-4c3a-ba10-fe6b86019098")
 	)
 	(no_connect
 		(at 180.34 162.56)
@@ -6899,6 +7046,16 @@
 	(no_connect
 		(at 285.75 130.81)
 		(uuid "f17a8b83-0ef5-4258-8352-1db00b8b083d")
+	)
+	(wire
+		(pts
+			(xy 86.36 139.7) (xy 96.52 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "01313346-1b9c-4629-bd8b-371c1eea0507")
 	)
 	(wire
 		(pts
@@ -6972,6 +7129,16 @@
 	)
 	(wire
 		(pts
+			(xy 26.67 207.01) (xy 26.67 212.09)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "080b9ff2-c40a-49c4-97f5-98d6e03a39f0")
+	)
+	(wire
+		(pts
 			(xy 74.93 212.09) (xy 80.01 212.09)
 		)
 		(stroke
@@ -7012,13 +7179,13 @@
 	)
 	(wire
 		(pts
-			(xy 80.01 207.01) (xy 80.01 209.55)
+			(xy 26.67 217.17) (xy 39.37 217.17)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "09764b89-ada8-4666-b6ed-fb3fc6769f81")
+		(uuid "092e1f55-2561-4461-9206-77bd39a19273")
 	)
 	(wire
 		(pts
@@ -7079,6 +7246,16 @@
 			(type default)
 		)
 		(uuid "10505a52-39cb-44b8-8a6f-3fccfaac5ab8")
+	)
+	(wire
+		(pts
+			(xy 114.3 35.56) (xy 106.68 35.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "13708d7b-1ef5-484a-87f6-70e185195c94")
 	)
 	(wire
 		(pts
@@ -7202,16 +7379,6 @@
 	)
 	(wire
 		(pts
-			(xy 80.01 201.93) (xy 80.01 207.01)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1e957f3b-6e5d-4d2e-a13b-0eb1d730fe28")
-	)
-	(wire
-		(pts
 			(xy 156.21 34.29) (xy 157.48 34.29)
 		)
 		(stroke
@@ -7262,6 +7429,16 @@
 	)
 	(wire
 		(pts
+			(xy 26.67 201.93) (xy 39.37 201.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2064a44c-a989-47ff-aafc-ec893b014606")
+	)
+	(wire
+		(pts
 			(xy 185.42 219.71) (xy 186.69 219.71)
 		)
 		(stroke
@@ -7299,6 +7476,16 @@
 			(type default)
 		)
 		(uuid "24195393-9f1b-466e-acc0-b67eff7feac8")
+	)
+	(wire
+		(pts
+			(xy 26.67 201.93) (xy 26.67 207.01)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "269cd19b-9f80-4ab4-be5d-653fd98685ad")
 	)
 	(wire
 		(pts
@@ -7352,7 +7539,7 @@
 	)
 	(wire
 		(pts
-			(xy 105.41 139.7) (xy 107.95 139.7)
+			(xy 104.14 139.7) (xy 107.95 139.7)
 		)
 		(stroke
 			(width 0)
@@ -7492,7 +7679,7 @@
 	)
 	(wire
 		(pts
-			(xy 83.82 139.7) (xy 96.52 139.7)
+			(xy 83.82 139.7) (xy 86.36 139.7)
 		)
 		(stroke
 			(width 0)
@@ -7509,16 +7696,6 @@
 			(type default)
 		)
 		(uuid "417278bb-83b0-46ca-9784-edd9093cc862")
-	)
-	(wire
-		(pts
-			(xy 107.95 139.7) (xy 113.03 139.7)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "41b9561f-c518-42d9-b105-fce6f05646a3")
 	)
 	(wire
 		(pts
@@ -7912,6 +8089,16 @@
 	)
 	(wire
 		(pts
+			(xy 26.67 196.85) (xy 26.67 201.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "61297ba9-a113-4112-929a-26316b5410fa")
+	)
+	(wire
+		(pts
 			(xy 266.7 106.87) (xy 266.7 109.22)
 		)
 		(stroke
@@ -8012,16 +8199,6 @@
 	)
 	(wire
 		(pts
-			(xy 30.48 212.09) (xy 39.37 212.09)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "69f362e8-a4ec-4099-bb28-1378a688fdc7")
-	)
-	(wire
-		(pts
 			(xy 227.33 21.59) (xy 227.33 36.83)
 		)
 		(stroke
@@ -8062,16 +8239,6 @@
 	)
 	(wire
 		(pts
-			(xy 30.48 201.93) (xy 39.37 201.93)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "717b17aa-b3c5-4788-937c-63832db30dab")
-	)
-	(wire
-		(pts
 			(xy 269.24 110.49) (xy 269.24 111.76)
 		)
 		(stroke
@@ -8092,7 +8259,7 @@
 	)
 	(wire
 		(pts
-			(xy 96.52 139.7) (xy 100.33 139.7)
+			(xy 96.52 139.7) (xy 99.06 139.7)
 		)
 		(stroke
 			(width 0)
@@ -8442,16 +8609,6 @@
 	)
 	(wire
 		(pts
-			(xy 80.01 209.55) (xy 80.01 212.09)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "87f94440-1d10-4fcd-b4ed-da9130f93050")
-	)
-	(wire
-		(pts
 			(xy 199.39 127) (xy 201.93 127)
 		)
 		(stroke
@@ -8510,15 +8667,15 @@
 		)
 		(uuid "92858572-4c54-41e5-9daf-a578a5e1c12e")
 	)
-	(wire
+	(polyline
 		(pts
-			(xy 80.01 212.09) (xy 80.01 217.17)
+			(xy 90.17 93.98) (xy 125.73 93.98)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "929c9799-c375-4bd3-a95c-fecf8326c514")
+		(uuid "92a78a94-5432-403a-9a92-130ff610bc69")
 	)
 	(wire
 		(pts
@@ -8529,6 +8686,16 @@
 			(type default)
 		)
 		(uuid "931fee8d-7c49-4e36-a916-0b1e16dd5e54")
+	)
+	(wire
+		(pts
+			(xy 106.68 40.64) (xy 114.3 40.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9566ac0b-bfbb-449d-b619-005cf2e23ef1")
 	)
 	(wire
 		(pts
@@ -8609,16 +8776,6 @@
 			(type default)
 		)
 		(uuid "a00cad9c-776b-4409-b635-7f68c246d393")
-	)
-	(wire
-		(pts
-			(xy 113.03 139.7) (xy 115.57 139.7)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a0b4a7d4-3964-4c13-ae1c-8b6e2172bdd1")
 	)
 	(wire
 		(pts
@@ -8922,6 +9079,16 @@
 	)
 	(wire
 		(pts
+			(xy 26.67 212.09) (xy 26.67 217.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b7708243-2da6-4e41-9660-0c85c2d2484d")
+	)
+	(wire
+		(pts
 			(xy 156.21 198.12) (xy 163.83 198.12)
 		)
 		(stroke
@@ -9100,6 +9267,16 @@
 		)
 		(uuid "cb5b0fb2-1efa-4301-ae01-935b8b1479da")
 	)
+	(polyline
+		(pts
+			(xy 88.9 92.71) (xy 88.9 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cbc32b9d-6a29-4426-a309-bd80173f1cf9")
+	)
 	(wire
 		(pts
 			(xy 152.4 58.42) (xy 154.94 58.42)
@@ -9180,6 +9357,16 @@
 		)
 		(uuid "d0a6e5c5-65bd-4945-9c3a-0f1c2f2b8f84")
 	)
+	(wire
+		(pts
+			(xy 26.67 212.09) (xy 39.37 212.09)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d1e2cebf-c1b5-433d-a904-59543affc23a")
+	)
 	(polyline
 		(pts
 			(xy 90.17 50.8) (xy 125.73 50.8)
@@ -9199,16 +9386,6 @@
 			(type default)
 		)
 		(uuid "d3b45273-be05-49c4-bd6d-52d8448d548f")
-	)
-	(wire
-		(pts
-			(xy 30.48 207.01) (xy 39.37 207.01)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d431d3b6-e0cc-4d2e-be18-81ebda78cee3")
 	)
 	(wire
 		(pts
@@ -9312,13 +9489,13 @@
 	)
 	(wire
 		(pts
-			(xy 30.48 217.17) (xy 39.37 217.17)
+			(xy 26.67 207.01) (xy 39.37 207.01)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e0f4c739-7d56-41b6-a4ba-7505f00426fd")
+		(uuid "e0ecb941-f9fa-474b-99e1-750fde9890cb")
 	)
 	(wire
 		(pts
@@ -9512,6 +9689,16 @@
 	)
 	(wire
 		(pts
+			(xy 107.95 139.7) (xy 114.3 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f526dd1b-9fcc-4a18-86cb-e0f7d714a033")
+	)
+	(wire
+		(pts
 			(xy 55.88 30.48) (xy 59.69 30.48)
 		)
 		(stroke
@@ -9519,6 +9706,16 @@
 			(type default)
 		)
 		(uuid "f798bb97-e18b-4287-8572-f390e21e2d63")
+	)
+	(wire
+		(pts
+			(xy 106.68 43.18) (xy 114.3 43.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f98ad047-cce3-46b2-95f4-c7cfefeca596")
 	)
 	(polyline
 		(pts
@@ -9542,6 +9739,16 @@
 	)
 	(wire
 		(pts
+			(xy 106.68 38.1) (xy 114.3 38.1)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fb716f78-5511-469a-a065-b5940818d867")
+	)
+	(wire
+		(pts
 			(xy 245.11 128.27) (xy 245.11 130.81)
 		)
 		(stroke
@@ -9549,16 +9756,6 @@
 			(type default)
 		)
 		(uuid "fbd05d1b-fc8f-4323-82ca-a9c7aec5f582")
-	)
-	(wire
-		(pts
-			(xy 80.01 209.55) (xy 86.36 209.55)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fc32786b-9e6e-4ae2-b197-e5b426d63bf8")
 	)
 	(wire
 		(pts
@@ -9622,7 +9819,7 @@
 			)
 		)
 	)
-	(global_label "P2.06"
+	(global_label "P1.12"
 		(shape input)
 		(at 271.78 105.41 90)
 		(fields_autoplaced yes)
@@ -9710,9 +9907,31 @@
 			)
 		)
 	)
+	(global_label "P1.08"
+		(shape input)
+		(at 80.01 217.17 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "16308fb5-ec4e-4e53-bd28-2c3bfdd3680c")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.4985 217.17 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "P1.05"
 		(shape input)
-		(at 106.68 43.18 0)
+		(at 114.3 38.1 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -9722,7 +9941,7 @@
 		)
 		(uuid "20baaa64-22aa-44aa-b7ec-94acdb5f02ec")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 115.1685 43.18 0)
+			(at 122.7885 38.1 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9798,28 +10017,6 @@
 			)
 		)
 	)
-	(global_label "P1.13"
-		(shape input)
-		(at 30.48 212.09 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "2ae018f0-0a9e-41db-9e10-c17fb0bbcfde")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 21.9915 212.09 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "P1.10"
 		(shape input)
 		(at 27.94 106.68 180)
@@ -9844,7 +10041,7 @@
 	)
 	(global_label "P1.06"
 		(shape input)
-		(at 106.68 35.56 0)
+		(at 114.3 35.56 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -9854,7 +10051,7 @@
 		)
 		(uuid "33e18b8d-8592-490b-ac91-efaab2acab85")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 115.1685 35.56 0)
+			(at 122.7885 35.56 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9864,24 +10061,24 @@
 			)
 		)
 	)
-	(global_label "P1.11"
+	(global_label "~RESET"
 		(shape input)
-		(at 30.48 201.93 180)
+		(at 114.3 139.7 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right)
+			(justify left)
 		)
-		(uuid "3ac4e903-b844-455b-ba07-9cad9fe5367b")
+		(uuid "35fe2387-a0fa-469d-998c-9d3d8f667791")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 21.9915 201.93 0)
+			(at 123.9374 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify right)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -9908,28 +10105,6 @@
 			)
 		)
 	)
-	(global_label "Ag-"
-		(shape input)
-		(at 156.21 34.29 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "42c2ee6a-0dbe-4721-b0b4-384048aca71a")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 149.4148 34.29 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "P0.00"
 		(shape input)
 		(at 27.94 71.12 180)
@@ -9952,24 +10127,24 @@
 			)
 		)
 	)
-	(global_label "P1.12"
+	(global_label "P0.04"
 		(shape input)
-		(at 30.48 207.01 180)
+		(at 80.01 212.09 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right)
+			(justify left)
 		)
-		(uuid "4db6bc4c-849f-4669-b691-a6b5a21c4ec4")
+		(uuid "5f39730d-1e99-45ed-a4b8-be90ad61bae6")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 21.9915 207.01 0)
+			(at 88.4985 212.09 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify right)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -10031,28 +10206,6 @@
 		(uuid "6e76de8f-df80-4c0c-9217-840a3b136011")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 19.4515 78.74 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "P1.14"
-		(shape input)
-		(at 30.48 217.17 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "6fc47434-1fd4-4d24-91b1-6d8b6fbcd761")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 21.9915 217.17 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10128,6 +10281,28 @@
 			)
 		)
 	)
+	(global_label "P1.14"
+		(shape input)
+		(at 80.01 207.01 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "869a4a0d-1b06-4c3a-bf51-d713e1c55e73")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.4985 207.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "SWDCLK"
 		(shape input)
 		(at 83.82 144.78 0)
@@ -10185,28 +10360,6 @@
 		(uuid "890b994f-45ef-4db1-9d91-44b14fa8ac84")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 19.4515 142.24 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "Ag+"
-		(shape input)
-		(at 156.21 50.8 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "89addf2d-f6d5-40e6-a482-77dffc39c133")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 149.4148 50.8 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10326,7 +10479,7 @@
 			)
 		)
 	)
-	(global_label "P0.03"
+	(global_label "P1.11"
 		(shape input)
 		(at 259.08 105.41 90)
 		(fields_autoplaced yes)
@@ -10392,9 +10545,9 @@
 			)
 		)
 	)
-	(global_label "P0.03"
+	(global_label "P1.12"
 		(shape input)
-		(at 106.68 38.1 0)
+		(at 114.3 40.64 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -10404,7 +10557,7 @@
 		)
 		(uuid "a6d7b899-9765-4c4a-b756-16ce1c8e08c3")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 115.1685 38.1 0)
+			(at 122.7885 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10480,7 +10633,7 @@
 			)
 		)
 	)
-	(global_label "P2.06"
+	(global_label "P1.12"
 		(shape input)
 		(at 154.94 114.3 180)
 		(fields_autoplaced yes)
@@ -10546,9 +10699,9 @@
 			)
 		)
 	)
-	(global_label "P2.06"
+	(global_label "P1.11"
 		(shape input)
-		(at 106.68 40.64 0)
+		(at 114.3 43.18 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -10558,7 +10711,7 @@
 		)
 		(uuid "bd7e1cb1-2472-4c8d-9dd7-462ae4d8c9ce")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 115.1685 40.64 0)
+			(at 122.7885 43.18 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10590,7 +10743,7 @@
 			)
 		)
 	)
-	(global_label "P0.03"
+	(global_label "P1.11"
 		(shape input)
 		(at 154.94 127 180)
 		(fields_autoplaced yes)
@@ -10608,28 +10761,6 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "~RESET"
-		(shape input)
-		(at 115.57 139.7 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "d6bf532b-e591-4752-b58b-c583b34e98c3")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 125.2074 139.7 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
 				(hide yes)
 			)
 		)
@@ -10674,6 +10805,28 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "P1.13"
+		(shape input)
+		(at 80.01 201.93 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f70649d8-719f-47ad-a5e9-9f8a407c7bca")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 88.4985 201.93 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -10882,7 +11035,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res1K"
 			(at 219.71 55.88 0)
 			(effects
 				(font
@@ -10952,7 +11105,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res1M"
 			(at 210.82 49.53 0)
 			(effects
 				(font
@@ -11285,7 +11438,7 @@
 				)
 			)
 		)
-		(property "Footprint" "SOIC127P600X175-8N"
+		(property "Footprint" "seniorDes:ina828"
 			(at 198.12 131.75 0)
 			(effects
 				(font
@@ -11425,7 +11578,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res4K7"
 			(at 205.74 114.3 0)
 			(effects
 				(font
@@ -11493,7 +11646,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:C0GCap0_1uF"
 			(at 160.02 34.29 0)
 			(effects
 				(font
@@ -11562,7 +11715,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:red47K"
 			(at 265.43 21.59 0)
 			(effects
 				(font
@@ -11630,7 +11783,7 @@
 				)
 			)
 		)
-		(property "Footprint" "MAX30102EFDT"
+		(property "Footprint" "seniorDes:ppg"
 			(at 195.58 211.76 0)
 			(effects
 				(font
@@ -11755,6 +11908,71 @@
 			(project ""
 				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
 					(reference "IC3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "seniorDes:solderPad")
+		(at 113.03 69.85 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "23f038d9-f4fd-4762-b273-e8fbcdfc671e")
+		(property "Reference" "U9"
+			(at 113.03 65.532 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "~"
+			(at 113.03 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "seniorDes:solderPad"
+			(at 113.03 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 113.03 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 113.03 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "0ee0fa2f-142c-425b-a3f9-2cd662719579")
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
+					(reference "U9")
 					(unit 1)
 				)
 			)
@@ -11986,7 +12204,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap10uF"
 			(at 62.23 35.56 0)
 			(effects
 				(font
@@ -12188,7 +12406,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:red47K"
 			(at 275.59 21.59 0)
 			(effects
 				(font
@@ -12258,7 +12476,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" "Sparkfun_LilyPad-Switched-Battery-v1.3:BATTCON_20MM_4LEGS"
+		(property "Footprint" "seniorDes:batteryHolder"
 			(at 129.54 210.82 0)
 			(effects
 				(font
@@ -12335,7 +12553,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:greenLed"
 			(at 71.12 212.09 0)
 			(effects
 				(font
@@ -12414,7 +12632,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:testPoint"
 			(at 213.36 124.46 0)
 			(effects
 				(font
@@ -12544,7 +12762,7 @@
 				)
 			)
 		)
-		(property "Footprint" "C_ARRAY_EXB34V_PAN"
+		(property "Footprint" "seniorDes:resArray2"
 			(at 264.16 110.49 0)
 			(effects
 				(font
@@ -12687,7 +12905,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:testPoint"
 			(at 223.52 147.32 0)
 			(effects
 				(font
@@ -12754,7 +12972,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "TPS63001DRCT"
+		(property "Footprint" "seniorDes:boost3_3v"
 			(at 200.66 282.88 0)
 			(effects
 				(font
@@ -13046,7 +13264,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap10uF"
 			(at 156.21 191.77 0)
 			(effects
 				(font
@@ -13090,7 +13308,7 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 113.03 139.7 0)
+		(at 86.36 139.7 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -13098,7 +13316,7 @@
 		(dnp no)
 		(uuid "4f544880-c0f7-498d-8806-27b15207ecc9")
 		(property "Reference" "TP1"
-			(at 111.76 134.112 0)
+			(at 85.09 134.112 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13107,7 +13325,7 @@
 			)
 		)
 		(property "Value" "TestPoint"
-			(at 115.57 137.6679 0)
+			(at 88.9 137.6679 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13116,8 +13334,8 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
-			(at 118.11 139.7 0)
+		(property "Footprint" "seniorDes:testPoint"
+			(at 91.44 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13126,7 +13344,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 118.11 139.7 0)
+			(at 91.44 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13135,7 +13353,7 @@
 			)
 		)
 		(property "Description" "test point"
-			(at 113.03 139.7 0)
+			(at 86.36 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13181,7 +13399,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:greenLed"
 			(at 71.12 201.93 0)
 			(effects
 				(font
@@ -13326,7 +13544,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res2K7"
 			(at 149.86 58.42 0)
 			(effects
 				(font
@@ -13463,7 +13681,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap0_1uF"
 			(at 287.02 135.89 0)
 			(effects
 				(font
@@ -13663,7 +13881,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:pinHeader1x4"
 			(at 101.6 38.1 0)
 			(effects
 				(font
@@ -13736,7 +13954,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res200K"
 			(at 242.57 52.07 0)
 			(effects
 				(font
@@ -13804,7 +14022,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:C0GCap0_01uF"
 			(at 270.51 30.48 0)
 			(effects
 				(font
@@ -14006,7 +14224,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res5K6"
 			(at 187.96 29.21 0)
 			(effects
 				(font
@@ -14076,7 +14294,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap0_1uF"
 			(at 254 31.75 0)
 			(effects
 				(font
@@ -14327,7 +14545,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap0_1uF"
 			(at 163.83 219.71 0)
 			(effects
 				(font
@@ -14395,7 +14613,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap3_9pF"
 			(at 96.52 144.78 0)
 			(effects
 				(font
@@ -14571,6 +14789,71 @@
 		)
 	)
 	(symbol
+		(lib_id "seniorDes:solderPad")
+		(at 100.33 80.01 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "7bdecb6e-d173-4297-816c-632fafe26ac8")
+		(property "Reference" "U10"
+			(at 100.33 75.692 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "~"
+			(at 100.33 74.93 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "seniorDes:solderPad"
+			(at 100.33 80.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 100.33 80.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 100.33 80.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "44d932dc-7462-41c7-85fb-fa5a73950fe7")
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
+					(reference "U10")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 260.35 146.05 180)
 		(unit 1)
@@ -14730,7 +15013,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res100K"
 			(at 163.83 38.1 0)
 			(effects
 				(font
@@ -14838,6 +15121,71 @@
 		)
 	)
 	(symbol
+		(lib_id "seniorDes:solderPad")
+		(at 100.33 69.85 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "87378e94-fc42-4698-a4dc-d68111dd8194")
+		(property "Reference" "U8"
+			(at 100.33 65.532 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "~"
+			(at 100.33 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "seniorDes:solderPad"
+			(at 100.33 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 100.33 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 100.33 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "2e4dbdd3-73d4-44af-8c24-be25cdef2a5e")
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
+					(reference "U8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 156.21 187.96 180)
 		(unit 1)
@@ -14932,7 +15280,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap10uF"
 			(at 158.75 144.78 0)
 			(effects
 				(font
@@ -15000,7 +15348,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:C0GCap0_1uF"
 			(at 160.02 50.8 0)
 			(effects
 				(font
@@ -15071,7 +15419,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" "NX3215SA32768KSTDMUA8"
+		(property "Footprint" "seniorDes:crystal32768"
 			(at 116.51 64.77 0)
 			(effects
 				(font
@@ -15150,7 +15498,7 @@
 				(hide yes)
 			)
 		)
-		(pin ""
+		(pin "1"
 			(uuid "779f4485-12d3-4ff6-bf93-2d86764ee8f6")
 		)
 		(pin "2"
@@ -15191,7 +15539,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:C0GCap0_1uF"
 			(at 207.01 41.91 0)
 			(effects
 				(font
@@ -15261,7 +15609,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "LGA-14L_2P5X3X0P86_STM"
+		(property "Footprint" "seniorDes:imu"
 			(at 242.824 120.142 0)
 			(effects
 				(font
@@ -15367,7 +15715,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:greenLed"
 			(at 71.12 217.17 0)
 			(effects
 				(font
@@ -15446,7 +15794,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res100"
 			(at 163.83 212.09 0)
 			(effects
 				(font
@@ -15582,7 +15930,7 @@
 				)
 			)
 		)
-		(property "Footprint" "SON65P200X200X80-7N"
+		(property "Footprint" "seniorDes:buck1_8v"
 			(at 167.64 242.24 0)
 			(effects
 				(font
@@ -15850,7 +16198,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:C0GCap0_01uF"
 			(at 279.4 52.07 0)
 			(effects
 				(font
@@ -15917,7 +16265,7 @@
 				)
 			)
 		)
-		(property "Footprint" "SOIC127P600X175-8N"
+		(property "Footprint" "seniorDes:opAmp"
 			(at 254 131.75 0)
 			(effects
 				(font
@@ -16055,7 +16403,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:swdConnector"
 			(at 240.03 204.47 0)
 			(effects
 				(font
@@ -16149,7 +16497,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:button"
 			(at 113.03 144.78 0)
 			(effects
 				(font
@@ -16284,7 +16632,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:spdt"
 			(at 144.78 208.28 0)
 			(effects
 				(font
@@ -16357,7 +16705,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:testPoint"
 			(at 264.16 158.75 0)
 			(effects
 				(font
@@ -16425,7 +16773,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" "LM4041CILPR"
+		(property "Footprint" "seniorDes:lm4041"
 			(at 130.81 160.96 0)
 			(effects
 				(font
@@ -16550,7 +16898,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res1M"
 			(at 219.71 48.26 0)
 			(effects
 				(font
@@ -16685,7 +17033,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:testPoint"
 			(at 132.08 210.82 0)
 			(effects
 				(font
@@ -16725,6 +17073,72 @@
 		)
 	)
 	(symbol
+		(lib_id "power:+3V3")
+		(at 26.67 196.85 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "b3997f61-3c87-4eb4-9d77-f17069fe30c5")
+		(property "Reference" "#PWR014"
+			(at 26.67 200.66 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 28.702 197.358 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 26.67 196.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 26.67 196.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3V3\""
+			(at 26.67 196.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "d48d9604-38ea-4d11-93da-a2f58da90ed5")
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
+					(reference "#PWR014")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R_Small_US")
 		(at 160.02 69.85 0)
 		(unit 1)
@@ -16752,7 +17166,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res1K"
 			(at 160.02 69.85 0)
 			(effects
 				(font
@@ -16822,7 +17236,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res4K7"
 			(at 96.52 135.89 0)
 			(effects
 				(font
@@ -16889,7 +17303,7 @@
 				)
 			)
 		)
-		(property "Footprint" "C_ARRAY_EXB34V_PAN"
+		(property "Footprint" "seniorDes:resArray2"
 			(at 138.24 119.38 0)
 			(effects
 				(font
@@ -17098,7 +17512,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap10uF"
 			(at 163.83 191.77 0)
 			(effects
 				(font
@@ -17166,7 +17580,7 @@
 				)
 			)
 		)
-		(property "Footprint" "YC164JR07470RL"
+		(property "Footprint" "seniorDes:resArray4"
 			(at -50.47 220.218 0)
 			(effects
 				(font
@@ -17306,7 +17720,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap0_1uF"
 			(at 205.74 29.21 0)
 			(effects
 				(font
@@ -17376,7 +17790,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:inductor"
 			(at 161.29 203.2 0)
 			(effects
 				(font
@@ -17419,6 +17833,71 @@
 		)
 	)
 	(symbol
+		(lib_id "seniorDes:solderPad")
+		(at 113.03 80.01 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "c9b4b060-adbe-4788-a9d5-f0423f19a075")
+		(property "Reference" "U11"
+			(at 113.03 75.692 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "~"
+			(at 113.03 74.93 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "seniorDes:solderPad"
+			(at 113.03 80.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 113.03 80.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 113.03 80.01 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "73461698-ae16-41ab-af6d-76a11887a1a4")
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
+					(reference "U11")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C_Small")
 		(at 62.23 30.48 90)
 		(unit 1)
@@ -17444,7 +17923,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap0_1uF"
 			(at 62.23 30.48 0)
 			(effects
 				(font
@@ -17487,17 +17966,24 @@
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 86.36 209.55 90)
+		(lib_id "seniorDes:solderPad")
+		(at 151.13 34.29 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "cd236ac0-6194-41fb-87ca-9f5e137165a5")
-		(property "Reference" "#PWR014"
-			(at 92.71 209.55 0)
+		(uuid "cc7deee9-1964-4a11-a2ec-5efa39a93854")
+		(property "Reference" "U6"
+			(at 151.13 29.972 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "~"
+			(at 151.13 29.21 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17505,17 +17991,8 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "GND"
-			(at 90.17 209.5499 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 86.36 209.55 0)
+		(property "Footprint" "seniorDes:silverContacts"
+			(at 151.13 34.29 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17524,7 +18001,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 86.36 209.55 0)
+			(at 151.13 34.29 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17532,8 +18009,8 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 86.36 209.55 0)
+		(property "Description" ""
+			(at 151.13 34.29 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -17542,12 +18019,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "251c6462-c44a-4200-8d27-a32af8a899ed")
+			(uuid "0a07c055-0872-43c7-84b9-522e7276e8d3")
 		)
 		(instances
-			(project "wearable"
+			(project ""
 				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
-					(reference "#PWR014")
+					(reference "U6")
 					(unit 1)
 				)
 			)
@@ -17582,7 +18059,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap10uF"
 			(at 210.82 152.4 0)
 			(effects
 				(font
@@ -17784,7 +18261,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:testPoint"
 			(at 148.59 198.12 0)
 			(effects
 				(font
@@ -17917,7 +18394,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res100"
 			(at 255.27 209.55 0)
 			(effects
 				(font
@@ -17954,6 +18431,71 @@
 			(project "wearable"
 				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
 					(reference "R27")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "seniorDes:solderPad")
+		(at 151.13 50.8 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "dfa949b1-b720-4055-9a16-6e9f8aef984e")
+		(property "Reference" "U7"
+			(at 151.13 46.482 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "~"
+			(at 151.13 45.72 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "seniorDes:silverContacts"
+			(at 151.13 50.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 151.13 50.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 151.13 50.8 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "1510358b-a0a4-4298-af89-10886c00f51c")
+		)
+		(instances
+			(project "wearable"
+				(path "/81026750-4f07-481e-af5d-190fa85978a1/add5146d-7ec5-4c1a-b515-fc923a5642d6"
+					(reference "U7")
 					(unit 1)
 				)
 			)
@@ -18118,7 +18660,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:testPoint"
 			(at 162.56 58.42 0)
 			(effects
 				(font
@@ -18185,7 +18727,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res100K"
 			(at 163.83 46.99 0)
 			(effects
 				(font
@@ -18388,7 +18930,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap10uF"
 			(at 153.67 212.09 0)
 			(effects
 				(font
@@ -18565,7 +19107,7 @@
 	)
 	(symbol
 		(lib_id "Device:R_Small_US")
-		(at 102.87 139.7 90)
+		(at 101.6 139.7 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -18573,7 +19115,7 @@
 		(dnp no)
 		(uuid "f5419ad5-fc3d-4063-b366-5002662e4fca")
 		(property "Reference" "R13"
-			(at 103.124 142.24 90)
+			(at 101.854 142.24 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18581,7 +19123,7 @@
 			)
 		)
 		(property "Value" "100"
-			(at 104.1399 137.16 0)
+			(at 102.8699 137.16 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18590,8 +19132,8 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
-			(at 102.87 139.7 0)
+		(property "Footprint" "seniorDes:res100"
+			(at 101.6 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18600,7 +19142,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 102.87 139.7 0)
+			(at 101.6 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18609,7 +19151,7 @@
 			)
 		)
 		(property "Description" "Resistor, small US symbol"
-			(at 102.87 139.7 0)
+			(at 101.6 139.7 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18726,7 +19268,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:res4K7"
 			(at 160.02 62.23 0)
 			(effects
 				(font
@@ -18797,7 +19339,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:inductor"
 			(at 204.47 147.32 0)
 			(effects
 				(font
@@ -18867,7 +19409,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap0_1uF"
 			(at 260.35 149.86 0)
 			(effects
 				(font
@@ -18935,7 +19477,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:greenLed"
 			(at 71.12 207.01 0)
 			(effects
 				(font
@@ -19015,7 +19557,7 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "seniorDes:ceramicCap10uF"
 			(at 212.09 130.81 0)
 			(effects
 				(font
