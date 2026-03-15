@@ -20,11 +20,6 @@
 #define EMG_ACTIVATION_THRESHOLD_MV   20   /* RMS above this = muscle active  */
 #define EMG_FATIGUE_ZCR_LOW           10   /* crossings/window below this = fatigue indicator */
 
-#define ADC_ON 1
-#define PPG_ON 1
-#define IMU_ON 1
-#define BLE_ON 0
-
 /* ── EMG result struct ───────────────────────────────────────────────────── */
 /**
  * @brief Holds all per-window EMG metrics derived from a differential
@@ -56,21 +51,24 @@ typedef struct {
     bool     fatigue_flag;      /* active + low ZCR heuristic                */
 } emg_metrics_t;
 
+#define EMG_WINDOW_SIZE (1<<12) // 4K
+#define EMG_ANALYSIS_SAMPLES  512 
+
+extern emg_metrics_t emg_data;
+extern int32_t emg_window[];
+
 /* ── Public API ──────────────────────────────────────────────────────────── */
 
 /* Initializes ADC for channels in overlay */
 int ADC_init(void);
 
-/**
- * Reads one window of SEQUENCE_SAMPLES, converts to mV, and returns
- * the populated emg_metrics_t.  Returns 0 on success, negative on error.
- */
-int EMG_read(emg_metrics_t *out);
-
-/* Read EMG metrics and print */
-void EMG_print(void);
-
 /* Reads the data from the channel and displays it */
-void ADC_print();
+void EMG_read();
+
+int32_t *EMG_get_raw();
+
+int EMG_compute_from_window();
+
+emg_metrics_t *EMG_get_metrics();
 
 #endif /* _ADC_H_ */

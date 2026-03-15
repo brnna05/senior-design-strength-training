@@ -63,12 +63,6 @@ static int32_t max30102_calc_heart_rate(struct max30102_data *data)
     }
     uint32_t mean = (uint32_t)(sum / HR_BUFFER_SIZE);
 
-    if (mean < HR_MIN_VALID_IR) {
-        printk("MAX30102: No finger detected (IR mean=%u)\n", mean);
-        bpm_history_count = 0; /* reset averaging when finger removed */
-        return -1;
-    }
-
     /* Step 2: low pass filter - smooth signal with moving average */
     uint32_t smoothed[HR_BUFFER_SIZE];
     for (int i = 0; i < HR_BUFFER_SIZE; i++) {
@@ -172,13 +166,6 @@ static int max30102_sample_fetch(const struct device *dev,
     if (data->ir_buf_idx >= HR_BUFFER_SIZE) {
         data->ir_buf_idx = 0;
         data->ir_buf_full = true;
-
-        /* Recalculate BPM every 1 second */
-        int32_t bpm = max30102_calc_heart_rate(data);
-        if (bpm > 0) {
-            data->bpm = bpm;
-            printk("MAX30102: Heart Rate = %d BPM\n", bpm);
-        }
     }
 
     return 0;

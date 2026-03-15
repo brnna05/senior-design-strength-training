@@ -6,11 +6,17 @@
 #include "LSM6DS3TR.h"
 #include "PPG.h"
 
-#define ADC_FREQUENCY   4000
-#define ADC_PERIOD      K_USEC(1000000 / ADC_FREQUENCY)
+#define EMG_FREQUENCY   4000
+#define EMG_PERIOD      K_USEC(1000000 / EMG_FREQUENCY)
 
-static uint16_t  channel_reading[SEQUENCE_SAMPLES];  // raw ADC values
-static int32_t   window_mv[SEQUENCE_SAMPLES]; // converted to mV for metric calculations
+/* Variables for sampling */
+int32_t emg_window[EMG_WINDOW_SIZE] = {0}; // cirucular buffer
+emg_metrics_t emg_data;
+static int32_t emg_idx;
+int32_t emg_raw = 0;
+
+/* Variables for ADC init*/
+static uint16_t  channel_reading[SEQUENCE_SAMPLES]; // raw ADC values
 
 static const struct adc_sequence_options options = {
     .extra_samplings = SEQUENCE_SAMPLES - 1,
@@ -30,20 +36,20 @@ static const struct adc_channel_cfg channel_cfgs[] = {
 static uint32_t vrefs_mv[] = {
     DT_FOREACH_CHILD_SEP(ADC_NODE, CHANNEL_VREF, (,))};
 
-// Periodic timer handlers
-static struct k_work adc_work;
+/* Periodic timer handler */ 
+static struct k_work emg_work;
 
-static void ADC_handler(struct k_timer *timer_id)
+static void EMG_handler(struct k_timer *timer_id)
 {
-    k_work_submit(&adc_work);
+    k_work_submit(&emg_work);
 }
 
-static void adc_work_handler(struct k_work *work)
+static void emg_work_handler(struct k_work *work)
 {
-    ADC_print();
+    EMG_read();
 }
 
-K_TIMER_DEFINE(adc_timer, ADC_handler, NULL);
+K_TIMER_DEFINE(emg_timer, EMG_handler, NULL);
 
 /* Integer square root using the Babylonian method */
 static uint32_t isqrt32(uint32_t n)
@@ -57,9 +63,7 @@ static uint32_t isqrt32(uint32_t n)
     return x;
 }
 
-/* Initialises ADC hardware and starts the periodic sampling timer. */
-static imu_data_t *imu_data;
-static struct sensor_value *ppg_data;
+
 
 int ADC_init(void)
 {
@@ -80,75 +84,108 @@ int ADC_init(void)
     if ((vrefs_mv[0] == 0) && (channel_cfgs[0].reference == ADC_REF_INTERNAL)) {
         vrefs_mv[0] = adc_ref_internal(adc);
     }
-    imu_data = IMU_get_data();
-    ppg_data = ppg_get_data();
+
+    for (int i = 0; i < EMG_WINDOW_SIZE; ++i) {
+        emg_window[i] = 0;
+    }
+    emg_idx = 0;
 
     /* Initialize timer */
-    k_work_init(&adc_work, adc_work_handler);
-    k_timer_start(&adc_timer, ADC_PERIOD, ADC_PERIOD);
+    k_work_init(&emg_work, emg_work_handler);
+    k_timer_start(&emg_timer, EMG_PERIOD, EMG_PERIOD);
 
     return 0;
 }
 
-/* Samples ADC and computes EMG metrics
- *   dc_offset_mv   – mean(window)          [mV]
- *   peak_to_peak_mv– max(window)-min        [mV]
- *   mav_mv         – mean(|AC sample|)      [mV]  (DC removed first)
- *   rms_mv         – sqrt(mean(AC sample²)) [mV]
- *   zcr            – count of sign changes in AC window
- *   is_active      – rms_mv > threshold
- *   fatigue_flag   – active + ZCR suspiciously low
- */
-int EMG_read(emg_metrics_t *out)
-{
-    if (!out) return -EINVAL;
+/* Read data from ADC. Takes 64 samples to reduce noise. 
+*/
+void EMG_read() {
+    int err;
 
-    // sample adc
-    int err = adc_read(adc, &sequence);
+    // read from ADC
+    err = adc_read(adc, &sequence);
     if (err < 0) {
-        printk("ADC read error (%d)\n", err);
-        return err;
+        printk("Could not read (%d)\n", err);
+        return;
+    }
+    emg_raw = channel_reading[0];
+    err = adc_raw_to_millivolts(vrefs_mv[0], channel_cfgs[0].gain, SEQUENCE_RESOLUTION, &emg_raw);
+
+    // store into window
+    emg_window[emg_idx] = emg_raw;
+    emg_idx = (emg_idx + 1) & (EMG_WINDOW_SIZE - 1);
+}
+
+int32_t *EMG_get_raw() { return &emg_raw; }
+
+/* Integer square root — already in file, reused below */
+
+/* Compute EMG metrics over the last EMG_ANALYSIS_SAMPLES entries
+ * in the circular emg_window buffer.
+ *
+ * emg_window is filled by EMG_read()() at ADC_FREQUENCY (4 kHz).
+ * Each entry is already in mV (averaged over SEQUENCE_SAMPLES raw reads).
+ * emg_idx points to the NEXT write slot, so reading backwards from there
+ * gives the most recent data.
+ *
+ * Returns 0 on success, -EINVAL if out is NULL,
+ * -EAGAIN if the buffer hasn't been filled enough yet.
+ */
+int EMG_compute_from_window()
+{
+    /* Reject if we haven't accumulated enough samples yet.
+     * emg_idx wraps, so compare against a sentinel: once emg_idx
+     * has lapped the ring we know the buffer is full. Use a simple
+     * static latch instead of a separate flag. */
+    static bool window_ready = false;
+    if (!window_ready) {
+        /* Once idx has advanced past EMG_ANALYSIS_SAMPLES we have
+         * enough data regardless of wrap position.              */
+        if (emg_idx >= EMG_ANALYSIS_SAMPLES) {
+            window_ready = true;
+        } else {
+            return -EAGAIN;
+        }
     }
 
-    // convert to mV and compute min/max in one pass
-    int32_t min_mv = INT32_MAX, max_mv = INT32_MIN;
+    /* ── Pass 1: mean (DC offset) ─────────────────────────────────── */
     int64_t sum = 0;
+    int32_t min_mv = INT32_MAX;
+    int32_t max_mv = INT32_MIN;
 
-    for (size_t i = 0; i < SEQUENCE_SAMPLES; i++) {
-        int32_t v = (int32_t)channel_reading[i];
-                    err = adc_raw_to_millivolts(vrefs_mv[0],
-                    channel_cfgs[0].gain,
-                    SEQUENCE_RESOLUTION,
-                    &v);
-        if (err < 0 || vrefs_mv[0] == 0) {
-            printk("mV conversion unsupported\n");
-            return -ENOTSUP;
-        }
-        window_mv[i] = v;
+    /* Start index of the oldest sample in the analysis window */
+    uint32_t start = (emg_idx + EMG_WINDOW_SIZE - EMG_ANALYSIS_SAMPLES)
+                      % EMG_WINDOW_SIZE;
+
+    for (uint32_t n = 0; n < EMG_ANALYSIS_SAMPLES; n++) {
+        uint32_t idx = (start + n) % EMG_WINDOW_SIZE;
+        int32_t v = emg_window[idx];
+
         sum += v;
         if (v < min_mv) min_mv = v;
         if (v > max_mv) max_mv = v;
     }
 
-    // DC offset
-    int32_t dc = (int32_t)(sum / SEQUENCE_SAMPLES);
-    out->dc_offset_mv    = dc;
-    out->peak_to_peak_mv = max_mv - min_mv;
+    int32_t dc = (int32_t)(sum / EMG_ANALYSIS_SAMPLES);
+    emg_data.dc_offset_mv = dc;
+    emg_data.peak_to_peak_mv = max_mv - min_mv;
 
-    // AC metrics
-    int64_t  sum_abs  = 0;
-    int64_t  sum_sq   = 0;
-    uint16_t zcr      = 0;
-    int32_t  prev_ac  = window_mv[0] - dc;
+    /* ── Pass 2: AC metrics (MAV, RMS, ZCR) ──────────────────────── */
+    int64_t sum_abs = 0;
+    int64_t sum_sq  = 0;
+    uint16_t zcr = 0;
 
-    for (size_t i = 0; i < SEQUENCE_SAMPLES; i++) {
-        int32_t ac = window_mv[i] - dc;
+    /* Seed prev_ac from the first sample */
+    int32_t prev_ac = emg_window[start] - dc;
+
+    for (uint32_t n = 0; n < EMG_ANALYSIS_SAMPLES; n++) {
+        uint32_t idx = (start + n) % EMG_WINDOW_SIZE;
+        int32_t  ac  = emg_window[idx] - dc;
 
         sum_abs += (ac < 0) ? -ac : ac;
+        sum_sq += (int64_t)ac * ac;
 
-        sum_sq  += (int64_t)ac * ac;
-
-        if (i > 0) {
+        if (n > 0) {
             if ((prev_ac < 0 && ac >= 0) || (prev_ac >= 0 && ac < 0)) {
                 zcr++;
             }
@@ -156,72 +193,13 @@ int EMG_read(emg_metrics_t *out)
         prev_ac = ac;
     }
 
-    out->mav_mv    = (int32_t)(sum_abs / SEQUENCE_SAMPLES);
-    out->rms_mv    = (int32_t)isqrt32((uint32_t)(sum_sq / SEQUENCE_SAMPLES));
-    out->zcr       = zcr;
-    out->is_active    = (out->rms_mv > EMG_ACTIVATION_THRESHOLD_MV);
-    out->fatigue_flag = out->is_active && (out->zcr < EMG_FATIGUE_ZCR_LOW);
+    emg_data.mav_mv = (int32_t)(sum_abs / EMG_ANALYSIS_SAMPLES);
+    emg_data.rms_mv = (int32_t)isqrt32((uint32_t)(sum_sq / EMG_ANALYSIS_SAMPLES));
+    emg_data.zcr = zcr;
+    emg_data.is_active = (emg_data.rms_mv > EMG_ACTIVATION_THRESHOLD_MV);
+    emg_data.fatigue_flag = emg_data.is_active && (emg_data.zcr < EMG_FATIGUE_ZCR_LOW);
 
     return 0;
 }
 
-/* Read EMG metrics and print */
-void EMG_print(void)
-{
-    emg_metrics_t m;
-    int64_t ts = k_uptime_get();
-
-    if (EMG_read(&m) < 0) return;
-
-    printk("ts=%lld  p2p=%dmV  rms=%dmV  mav=%dmV  zcr=%u  dc=%dmV  "
-           "active=%d  fatigue=%d\n",
-           ts,
-           m.peak_to_peak_mv,
-           m.rms_mv,
-           m.mav_mv,
-           m.zcr,
-           m.dc_offset_mv,
-           (int)m.is_active,
-           (int)m.fatigue_flag);
-}
-
-void ADC_print() {
-    int err;
-    int64_t timestamp_us = k_ticks_to_us_floor64(k_uptime_ticks());
-
-    err = adc_read(adc, &sequence);
-    if (err < 0) {
-        printk("Could not read (%d)\n", err);
-        return;
-    }
-
-    int32_t val_mv = 0;
-    int sum = 0;
-        
-    for (size_t i = 0U; i < SEQUENCE_SAMPLES; i++) {
-
-        val_mv = channel_reading[i];
-        err = adc_raw_to_millivolts(vrefs_mv[0], channel_cfgs[0].gain, SEQUENCE_RESOLUTION, &val_mv);
-        /* conversion to mV may not be supported, skip if not */
-	    if (!((err < 0) || vrefs_mv[0] == 0)) {
-            sum += val_mv;
-	    }
-    }
-
-    val_mv = sum / SEQUENCE_SAMPLES;
-
-    printk("%lld, %d, %d, %d, %d, %d, %d, %d, %d\n", 
-        timestamp_us, val_mv, 
-    #if IMU_ON
-        imu_data->accel_x, imu_data->accel_y, imu_data->accel_z,
-        imu_data->gyro_x, imu_data->gyro_y, imu_data->gyro_z,
-    #else
-        0, 0, 0, 0, 0, 0,
-    #endif
-    #if PPG_ON
-        ppg_data->val1
-    #else
-        0
-    #endif
-        );
-}
+emg_metrics_t *EMG_get_metrics() { return &emg_data; }
