@@ -55,6 +55,7 @@ const SessionScreen = () => {
   const [breakSecondsLeft, setBreakSecondsLeft] = useState(BREAK_DURATION_SEC);
   const [breakTimer, setBreakTimer] = useState<ReturnType<typeof setInterval> | null>(null);
   const [summaryVisible, setSummaryVisible] = useState(false);
+  const [side, setSide] = useState<'Left' | 'Right'>('Left');
 
   const startWorkout = () => {
     setPhase('working');
@@ -119,6 +120,7 @@ const SessionScreen = () => {
         exercise: 'Bicep Curl',
         sets: logWithPartial,
         totalReps: logWithPartial.reduce((sum, s) => sum + s.repsCompleted, 0),
+        side,
       });
     }
 
@@ -176,6 +178,21 @@ const SessionScreen = () => {
           </View>
 
           <Text style={styles.subLabel}>{totalSets} sets × {totalReps} reps</Text>
+
+          <View style={styles.stepperRow}>
+            <View style={styles.sideToggle}>
+              {(['Left', 'Right'] as const).map(s => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.sideBtn, side === s && styles.sideBtnActive]}
+                  onPress={() => setSide(s)}>
+                  <Text style={[styles.sideBtnText, side === s && styles.sideBtnTextActive]}>
+                    {s}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           <TouchableOpacity style={styles.startButton} onPress={startWorkout}>
             <Text style={styles.startButtonText}>Start Workout</Text>
@@ -287,6 +304,7 @@ const SessionScreen = () => {
                 Set {s.setNumber}: {s.repsCompleted} reps
               </Text>
             ))}
+            <Text style={styles.summaryLine}>Side: {side} Arm</Text>
             <TouchableOpacity style={styles.primaryButton} onPress={resetSession}>
               <Text style={styles.primaryButtonText}>Done</Text>
             </TouchableOpacity>
@@ -357,7 +375,7 @@ const styles = StyleSheet.create({
   },
   stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
   stepperDivider: { height: 1, backgroundColor: '#E0E0E0' },
-  stepperLabel: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
+  stepperLabel: { fontSize: 16, fontWeight: '600', color: '#1A1A1A', padding: 5},
   stepperControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepperBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#D6E0D3',
@@ -366,6 +384,29 @@ const styles = StyleSheet.create({
   stepperBtnDisabled: { backgroundColor: '#ECECEC', borderColor: '#C0C0C0' },
   stepperBtnText: { fontSize: 20, fontWeight: '600', color: '#1A1A1A', lineHeight: 22 },
   stepperValue: { fontSize: 22, fontWeight: '700', color: '#1A1A1A', minWidth: 32, textAlign: 'center' },
+  sideToggle: {
+    flexDirection: 'row',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#636363',
+    overflow: 'hidden',
+  },
+  sideBtn: {
+    paddingHorizontal: 30,
+    paddingVertical: 10,
+    backgroundColor: 'transparent',
+  },
+  sideBtnActive: {
+    backgroundColor: '#D6E0D3',
+  },
+  sideBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#888',
+  },
+  sideBtnTextActive: {
+    color: '#1A1A1A',
+  },
 });
 
 export default SessionScreen;

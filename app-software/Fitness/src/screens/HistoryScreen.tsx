@@ -84,7 +84,7 @@ const WorkoutCard = ({ workout }: { workout: CompletedWorkout }) => (
     <View style={cardStyles.card}>
       <View style={cardStyles.header}>
         <Text style={cardStyles.exercise}>{workout.exercise}</Text>
-        {/* <Text style={cardStyles.date}>{formatDate(workout.date)}</Text> */}
+        <Text style={cardStyles.exercise}>{workout.side} Arm</Text>
       </View>
 
       <View style={cardStyles.statsRow}>
@@ -96,12 +96,6 @@ const WorkoutCard = ({ workout }: { workout: CompletedWorkout }) => (
           <Text style={cardStyles.statValue}>{workout.totalReps}</Text>
           <Text style={cardStyles.statLabel}>TOTAL REPS</Text>
         </View>
-        {/* <View style={cardStyles.stat}>
-          <Text style={cardStyles.statValue}>
-            {Math.max(...workout.sets.map(s => s.repsCompleted))}
-          </Text>
-          <Text style={cardStyles.statLabel}>BEST SET</Text>
-        </View> */}
       </View>
 
       <View style={cardStyles.setList}>
