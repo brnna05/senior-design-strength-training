@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { useWorkouts, CompletedWorkout } from '../context/WorkoutContext';
+import { useBLE } from '../context/BLEContext';
 
 type DeleteMode = 'menu' | 'all' | 'range' | 'specific';
 
@@ -26,6 +27,8 @@ const SettingsScreen = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [rangeError, setRangeError] = useState('');
+  const { scanForDevice, isConnected, connectedDeviceName } = useBLE();
+  const [isScanning, setIsScanning] = useState(false);
 
   // ── helpers ────────────────────────────────────────────────
 
@@ -42,6 +45,17 @@ const SettingsScreen = () => {
   };
 
   const isValidDate = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
+
+  const handleConnectDevice = () => {
+    if (isConnected) {
+      Alert.alert('Already Connected', 'A device is already connected.');
+      return;
+    }
+    setIsScanning(true);
+    scanForDevice();
+    // Stop showing "scanning" after 10 seconds if nothing found
+    setTimeout(() => setIsScanning(false), 10000);
+  };
 
   // ── delete handlers ────────────────────────────────────────
 
@@ -259,10 +273,14 @@ const SettingsScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Bluetooth</Text>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Connect Device</Text>
-            <Text style={styles.rowValue}>Not Connected</Text>
-          </View>
+          <TouchableOpacity style={styles.row} onPress={handleConnectDevice}>
+            <Text style={styles.rowLabel}>
+              {isScanning ? 'Scanning...' : 'Connect Device'}
+            </Text>
+            <Text style={[styles.rowValue, isConnected && { color: '#658e58' }]}>
+              {isConnected ? '● Connected' : isScanning ? '● Scanning' : 'Not Connected'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
       </ScrollView>

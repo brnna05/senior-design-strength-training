@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,15 @@ import {
   Modal,
 } from 'react-native';
 import { useWorkouts, CompletedSet } from '../context/WorkoutContext';
+import { useBLE } from '../context/BLEContext';
 
 type SessionPhase = 'idle' | 'working' | 'break' | 'done';
 
 const DEFAULT_SETS = 3;
 const DEFAULT_REPS = 10;
 const BREAK_DURATION_SEC = 60;
+const REP_SVC_UUID  = '12340001-0000-0000-0000-000000000001';
+const REP_CHAR_UUID = '12340001-0000-0000-0000-000000000002';
 
 interface StepperProps {
   label: string;
@@ -43,6 +46,7 @@ const Stepper: React.FC<StepperProps> = ({ label, value, onDecrement, onIncremen
 
 const SessionScreen = () => {
   const { saveWorkout } = useWorkouts();
+  const { subscribeToNotifications, isConnected } = useBLE();
 
   const [phase, setPhase] = useState<SessionPhase>('idle');
   const [totalSets, setTotalSets] = useState(DEFAULT_SETS);
@@ -57,6 +61,40 @@ const SessionScreen = () => {
   const [summaryVisible, setSummaryVisible] = useState(false);
   const [side, setSide] = useState<'Left' | 'Right'>('Left');
 
+  // Refs that always point to the latest values — prevents stale closures in BLE callback
+  const completeRepRef = useRef(completeRep);
+  const phaseRef = useRef(phase);
+
+  useEffect(() => { completeRepRef.current = completeRep; });
+  useEffect(() => { phaseRef.current = phase; });
+
+  // Subscribe ONCE when device connects — stay subscribed until it disconnects.
+  // phaseRef gates whether a notification should actually trigger a rep.
+  useEffect(() => {
+    if (!isConnected) return;
+
+    console.log('Setting up BLE rep subscription');
+    const subscription = subscribeToNotifications(
+      REP_SVC_UUID,
+      REP_CHAR_UUID,
+      (_data) => {
+        console.log('BLE notification received, phase:', phaseRef.current);
+        if (phaseRef.current === 'working') {
+          completeRepRef.current();
+        }
+      }
+    );
+
+    if (!subscription) {
+      console.warn('Subscription returned undefined — device may not have services discovered');
+    }
+
+    return () => {
+      console.log('Removing BLE rep subscription');
+      subscription?.remove();
+    };
+  }, [isConnected, subscribeToNotifications]); // re-runs only if connection drops/reconnects
+
   const startWorkout = () => {
     setPhase('working');
     setCurrentSet(1);
@@ -65,7 +103,7 @@ const SessionScreen = () => {
     setSetLog([]);
   };
 
-  const completeRep = () => {
+  function completeRep() {
     if (currentRep < totalReps) {
       setCurrentRep(r => r + 1);
     } else {
@@ -84,7 +122,7 @@ const SessionScreen = () => {
         endWorkout(newSetLog);
       }
     }
-  };
+  }
 
   const startBreakTimer = () => {
     setBreakSecondsLeft(BREAK_DURATION_SEC);
@@ -153,6 +191,8 @@ const SessionScreen = () => {
       (totalSets * totalReps)) * 100
       : 0;
 
+  // ── idle ────────────────────────────────────────────────────────────────────
+
   if (phase === 'idle') {
     return (
       <View style={styles.container}>
@@ -202,6 +242,8 @@ const SessionScreen = () => {
     );
   }
 
+  // ── break ───────────────────────────────────────────────────────────────────
+
   if (phase === 'break') {
     return (
       <View style={styles.container}>
@@ -224,6 +266,8 @@ const SessionScreen = () => {
       </View>
     );
   }
+
+  // ── working ─────────────────────────────────────────────────────────────────
 
   /* TODO:
    * - change to update based on wearable device data instead of button presses
@@ -284,6 +328,8 @@ const SessionScreen = () => {
       </View>
     );
   }
+
+  // ── done / summary ───────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
@@ -375,7 +421,7 @@ const styles = StyleSheet.create({
   },
   stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
   stepperDivider: { height: 1, backgroundColor: '#E0E0E0' },
-  stepperLabel: { fontSize: 16, fontWeight: '600', color: '#1A1A1A', padding: 5},
+  stepperLabel: { fontSize: 16, fontWeight: '600', color: '#1A1A1A', padding: 5 },
   stepperControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepperBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#D6E0D3',

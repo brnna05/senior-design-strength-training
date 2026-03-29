@@ -22,6 +22,12 @@
 		adc0 = &adc;
         imu0 = &lsm6dsl;
 	};
+
+	// zephyr,user {
+	// 	emg-led-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+	// 	imu-led-gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
+	// 	ppg-led-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+	// };
 };
 
 &adc {
@@ -82,4 +88,9 @@
         led2-pa = <0x1f>;
         
     };
+};
+
+&led3 {
+	gpios = <&gpio1 14 0>;
+    status = "disabled";
 };
