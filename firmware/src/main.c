@@ -1,14 +1,19 @@
 #include <zephyr/kernel.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
+#include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/drivers/gpio.h>
 #include "PPG.h"
-#include "LSM6DS3TR.h"
-#include "ADC.h"
 
-#define PRINT_PERIOD_US  100 // 0.1 ms = 100 us
-#define PRINT_PERIOD     K_USEC(PRINT_PERIOD_US)
+/* ── Message types — keep in sync with RN app ── */
+#define MSG_REP     0x01
+#define MSG_BPM     0x02
+#define MSG_FATIGUE 0x03
+
+/* How often to send a BPM notification (ms).
+ * The PPG buffer fills every 1 s at 200 Hz, so 1 s is the finest resolution. */
+#define BPM_NOTIFY_PERIOD_MS 1000
 
 static const struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(
     BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME,
@@ -23,55 +28,7 @@ static const struct bt_data ad[] = {
             sizeof(CONFIG_BT_DEVICE_NAME) - 1),
 };
 
-static struct sensor_value *ir_val;
-static imu_data_t *imu_data;
-static int32_t *emg_raw;
-
-static struct k_work print_work;
-static struct k_timer print_timer;
-
-static void print_work_handler(struct k_work *work) {
-	int64_t ts_us = k_ticks_to_us_floor64(k_uptime_ticks());
-
-
-	printk("%lld,%d,%d,%d,%d,%d,%d,%d,%d\n",
-        ts_us,
-    	*emg_raw,
-    	imu_data->accel_x, imu_data->accel_y, imu_data->accel_z,
-    	imu_data->gyro_x, imu_data->gyro_y, imu_data->gyro_z,
-    	ir_val->val1);
-}
-
-static void print_timer_handler(struct k_timer *timer_id)
-{
-    k_work_submit(&print_work);
-}
-
-#define METRICS_PERIOD_MS   100
-static struct k_work  metrics_work;
-static struct k_timer metrics_timer;
-
-static void metrics_work_handler(struct k_work *work)
-{
-    if (EMG_compute_from_window() == 0) {
-        int64_t ts = k_ticks_to_us_floor64(k_uptime_ticks());
-        printk("%lld,emg_rms=%d,mav=%d,p2p=%d,zcr=%u,active=%d,fatigue=%d\n",
-               ts,
-               emg_data.rms_mv,
-               emg_data.mav_mv,
-               emg_data.peak_to_peak_mv,
-               emg_data.zcr,
-               (int)emg_data.is_active,
-               (int)emg_data.fatigue_flag);
-    }
-}
-
-static void metrics_timer_handler(struct k_timer *t)
-{
-    k_work_submit(&metrics_work);
-}
-
-/* ── UUIDs ── keep these in sync with the RN app */
+/* ── UUIDs — keep in sync with RN app ── */
 #define REP_SVC_UUID \
     BT_UUID_DECLARE_128(BT_UUID_128_ENCODE( \
         0x12340001, 0x0000, 0x0000, 0x0000, 0x000000000001))
@@ -90,48 +47,111 @@ BT_GATT_SERVICE_DEFINE(rep_svc,
     BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 );
 
-/* Send a single 0x01 byte to notify a rep */
-static void notify_rep(void)
+/* ── Generic 2-byte notify helper [msgType, value] ── */
+static void notify(uint8_t msg_type, uint8_t value)
 {
-    static uint8_t rep_val = 0;
-    rep_val++;
-    /* attr index 1 = the characteristic value attribute */
-    bt_gatt_notify(NULL, &rep_svc.attrs[1], &rep_val, sizeof(rep_val));
-    printk("Notified rep = %d\n", rep_val);
+    uint8_t buf[2] = { msg_type, value };
+    bt_gatt_notify(NULL, &rep_svc.attrs[1], buf, sizeof(buf));
+    printk("Notified type=0x%02x value=%d\n", msg_type, value);
 }
 
-/* ── Button 1 (gpio1, pin 9) ── */
+/* ── Connection callback — send BPM=0 to initialise the RN app ── */
+static void on_connected(struct bt_conn *conn, uint8_t err)
+{
+    if (err) {
+        printk("Connection failed (err %u)\n", err);
+        return;
+    }
+    printk("Connected — sending initial BPM=0\n");
+    notify(MSG_BPM, 0);
+}
+
+static struct bt_conn_cb conn_callbacks = {
+    .connected = on_connected,
+};
+
+/* ── BPM notify work + timer ────────────────────────────────────────────── */
+static struct k_work bpm_work;
+static struct k_timer bpm_timer;
+
+static void bpm_work_handler(struct k_work *work)
+{
+    int32_t bpm = ppg_get_bpm();
+
+    if (bpm < 0) {
+        /* Buffer not yet full or no finger — skip this tick */
+        return;
+    }
+
+    /* BPM is validated to 40–180 by the PPG driver, safe to cast to uint8_t */
+    notify(MSG_BPM, (uint8_t)bpm);
+}
+
+static void bpm_timer_handler(struct k_timer *t)
+{
+    k_work_submit(&bpm_work);
+}
+
+/* ── Button 1 (sw1) — send rep notification ── */
 static const struct gpio_dt_spec btn1 =
-    GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);   /* sw1 = button1 in DTS */
+    GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 
 static struct gpio_callback btn1_cb_data;
 
 static void btn1_pressed(const struct device *dev,
                          struct gpio_callback *cb, uint32_t pins)
 {
-    notify_rep();
+    notify(MSG_REP, 0x01);
 }
 
+/* ── Button 0 (sw0) — cycle fatigue level 0→1→2→0 ── */
+static const struct gpio_dt_spec btn0 =
+    GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
+
+static struct gpio_callback btn0_cb_data;
+static uint8_t fatigue_level = 0;
+
+static void btn0_pressed(const struct device *dev,
+                         struct gpio_callback *cb, uint32_t pins)
+{
+    fatigue_level = (fatigue_level + 1) % 3;
+    notify(MSG_FATIGUE, fatigue_level);
+}
+
+/* ── Button init ── */
 static int button_init(void)
 {
+    /* sw1 — rep */
     if (!gpio_is_ready_dt(&btn1)) {
-        printk("Button GPIO not ready\n");
+        printk("btn1 GPIO not ready\n");
         return -ENODEV;
     }
     gpio_pin_configure_dt(&btn1, GPIO_INPUT);
     gpio_pin_interrupt_configure_dt(&btn1, GPIO_INT_EDGE_TO_ACTIVE);
     gpio_init_callback(&btn1_cb_data, btn1_pressed, BIT(btn1.pin));
     gpio_add_callback(btn1.port, &btn1_cb_data);
-    printk("Button 1 ready\n");
+    printk("Button 1 (rep) ready\n");
+
+    /* sw0 — fatigue */
+    if (!gpio_is_ready_dt(&btn0)) {
+        printk("btn0 GPIO not ready\n");
+        return -ENODEV;
+    }
+    gpio_pin_configure_dt(&btn0, GPIO_INPUT);
+    gpio_pin_interrupt_configure_dt(&btn0, GPIO_INT_EDGE_TO_ACTIVE);
+    gpio_init_callback(&btn0_cb_data, btn0_pressed, BIT(btn0.pin));
+    gpio_add_callback(btn0.port, &btn0_cb_data);
+    printk("Button 0 (fatigue) ready\n");
+
     return 0;
 }
 
 int main(void)
 {
-    printk("starting firmware...\n");
-	printk("ts_us,emg_mv,ax_mg,ay_mg,az_mg,gx_mdps,gy_mdps,gz_mdps,ir\n");
+    printk("Starting firmware...\n");
 
-    /* BLE init */
+    bt_conn_cb_register(&conn_callbacks);
+
     if (bt_enable(NULL)) {
         printk("BT enable failed\n");
         return -1;
@@ -143,41 +163,21 @@ int main(void)
     }
 
     printk("BLE advertising as \"%s\"\n", CONFIG_BT_DEVICE_NAME);
-    
+
+    /* PPG — starts sampling at 200 Hz internally */
+    if (ppg_init(HR_SAMPLE_RATE)) {
+        printk("PPG init failed\n");
+        return -1;
+    }
+
+    /* BPM notify timer — fires every BPM_NOTIFY_PERIOD_MS */
+    k_work_init(&bpm_work, bpm_work_handler);
+    k_timer_init(&bpm_timer, bpm_timer_handler, NULL);
+    k_timer_start(&bpm_timer,
+                  K_MSEC(BPM_NOTIFY_PERIOD_MS),
+                  K_MSEC(BPM_NOTIFY_PERIOD_MS));
+
     button_init();
-
-    // /* PPG init */
-    // if (ppg_init(200)) {
-    //     printk("PPG_Init failed.\n");
-    //     return -1;
-    // }
-	// ir_val = ppg_get_data();
-
-    // /* IMU init */
-    // if (IMU_init(104)) {
-    //     printk("IMU_Init failed.\n");
-    //     return -1;
-    // }
-	// imu_data = IMU_get_data();
-
-
-    // /* ADC init */
-    // if (ADC_init()) {
-    //     printk("ADC_Init failed.\n");
-    //     return -1;
-    // }
-	// emg_raw = EMG_get_raw();
-
-	// // k_work_init(&metrics_work, metrics_work_handler);
-	// // k_timer_init(&metrics_timer, metrics_timer_handler, NULL);
-	// // k_timer_start(&metrics_timer, K_MSEC(METRICS_PERIOD_MS), K_MSEC(METRICS_PERIOD_MS));
-
-
-	// k_work_init(&print_work, print_work_handler);
-    // k_timer_init(&print_timer, print_timer_handler, NULL);
-    // k_timer_start(&print_timer, PRINT_PERIOD, PRINT_PERIOD);
- 
-    // printk("print timer started: every %d us\n", PRINT_PERIOD_US);
 
     while (1) {
         k_sleep(K_FOREVER);

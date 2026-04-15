@@ -218,7 +218,7 @@ const SettingsScreen = () => {
               <View style={{ flex: 1 }}>
                 <Text style={styles.workoutExercise}>{item.exercise}</Text>
                 <Text style={styles.workoutMeta}>
-                  {item.date} · {item.totalReps} reps · {item.sets.length} sets
+                  {item.date} · {item.totalReps} reps · {item.sets.length} sets · {item.side}
                 </Text>
               </View>
               <TouchableOpacity style={styles.rowDeleteBtn} onPress={() => handleDeleteOne(item)}>
@@ -275,10 +275,10 @@ const SettingsScreen = () => {
           <Text style={styles.sectionTitle}>Bluetooth</Text>
           <TouchableOpacity style={styles.row} onPress={handleConnectDevice}>
             <Text style={styles.rowLabel}>
-              {isScanning ? 'Scanning...' : 'Connect Device'}
+              Device Status
             </Text>
             <Text style={[styles.rowValue, isConnected && { color: '#658e58' }]}>
-              {isConnected ? '● Connected' : isScanning ? '● Scanning' : 'Not Connected'}
+              {isConnected ? 'Connected' : isScanning ? 'Scanning' : 'Not Connected'}
             </Text>
           </TouchableOpacity>
         </View>

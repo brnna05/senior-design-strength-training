@@ -24,32 +24,52 @@ export const BLEProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // useCallback on every exposed function so the hook call order
   // is always identical between renders — fixes "change in order of hooks" error
-  const connectToDevice = useCallback(async (scannedDevice: Device) => {
+    const connectToDevice = useCallback(async (scannedDevice: Device) => {
     try {
-      const connected = await scannedDevice.connect();
-      await connected.discoverAllServicesAndCharacteristics();
-      setDevice(connected);
-      setIsConnected(true);
-
-      connected.onDisconnected(() => {
+        console.log('Connecting to', scannedDevice.name, scannedDevice.id);
+        const connected = await scannedDevice.connect();
+        console.log('Connected, discovering services...');
+        await connected.discoverAllServicesAndCharacteristics();
+        console.log('Services discovered');
+        setDevice(connected);
+        setIsConnected(true);
+        connected.onDisconnected(() => {
+        console.log('Device disconnected');
         setDevice(null);
         setIsConnected(false);
-      });
-    } catch (e) {
-      console.error('Connection failed:', e);
+        });
+    } catch (e: any) {
+        console.error('Connection failed:', e.message, 'reason:', e.reason);
     }
-  }, []); // manager is a ref — stable forever, no deps needed
+    }, []);
 
-  const scanForDevice = useCallback(() => {
+    const scanForDevice = useCallback(() => {
     if (isConnected) return;
-    manager.startDeviceScan(null, null, (error, scannedDevice) => {
-      if (error) { console.error('Scan error:', error); return; }
-      if (scannedDevice?.name === 'nrf54_strength_training') {
+
+    console.log('Starting BLE scan...');
+
+    // Safety: stop any previous scan first
+    manager.stopDeviceScan();
+
+    const scanTimeout = setTimeout(() => {
         manager.stopDeviceScan();
+        console.warn('BLE scan timed out — device not found');
+    }, 10000);
+
+    manager.startDeviceScan(null, null, (error, scannedDevice) => {
+        if (error) {
+        clearTimeout(scanTimeout);
+        console.error('Scan error:', error.message, 'code:', error.errorCode);
+        return;
+        }
+        if (scannedDevice?.name === 'nrf54_strength_training') {
+        clearTimeout(scanTimeout);
+        manager.stopDeviceScan();
+        console.log('Found device, connecting...');
         connectToDevice(scannedDevice);
-      }
+        }
     });
-  }, [isConnected, connectToDevice]);
+    }, [isConnected, connectToDevice]);
 
   const readCharacteristic = useCallback(async (svc: string, char: string): Promise<Buffer> => {
     if (!device) throw new Error('No device connected');

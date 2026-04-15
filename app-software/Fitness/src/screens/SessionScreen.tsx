@@ -9,14 +9,27 @@ import {
 } from 'react-native';
 import { useWorkouts, CompletedSet } from '../context/WorkoutContext';
 import { useBLE } from '../context/BLEContext';
+import InsightBox from '../components/InsightBox';
 
 type SessionPhase = 'idle' | 'working' | 'break' | 'done';
 
 const DEFAULT_SETS = 3;
 const DEFAULT_REPS = 10;
 const BREAK_DURATION_SEC = 60;
+
 const REP_SVC_UUID  = '12340001-0000-0000-0000-000000000001';
 const REP_CHAR_UUID = '12340001-0000-0000-0000-000000000002';
+
+// Byte protocol: [msgType, value]
+const MSG_REP     = 0x01; // value unused
+const MSG_BPM     = 0x02; // value = bpm
+const MSG_FATIGUE = 0x03; // value: 0 = none, 1 = some, 2 = fatigued
+
+const FATIGUE_INSIGHT: Record<number, { type: 'success' | 'warning' | 'error'; message: string }> = {
+  0: { type: 'success', message: 'No fatigue detected. Keep it up!' },
+  1: { type: 'warning', message: 'Some fatigue detected. Consider slowing your pace.' },
+  2: { type: 'error',   message: 'High fatigue detected. Take a break if needed.' },
+};
 
 interface StepperProps {
   label: string;
@@ -60,27 +73,48 @@ const SessionScreen = () => {
   const [breakTimer, setBreakTimer] = useState<ReturnType<typeof setInterval> | null>(null);
   const [summaryVisible, setSummaryVisible] = useState(false);
   const [side, setSide] = useState<'Left' | 'Right'>('Left');
+  const [bpm, setBpm] = useState<number | null>(null);
+  const [insight, setInsight] = useState<{ type: 'warning' | 'success' | 'error'; message: string } | null>(null);
 
-  // Refs that always point to the latest values — prevents stale closures in BLE callback
   const completeRepRef = useRef(completeRep);
   const phaseRef = useRef(phase);
 
   useEffect(() => { completeRepRef.current = completeRep; });
   useEffect(() => { phaseRef.current = phase; });
 
-  // Subscribe ONCE when device connects — stay subscribed until it disconnects.
-  // phaseRef gates whether a notification should actually trigger a rep.
   useEffect(() => {
     if (!isConnected) return;
 
-    console.log('Setting up BLE rep subscription');
+    console.log('Setting up BLE subscription');
     const subscription = subscribeToNotifications(
       REP_SVC_UUID,
       REP_CHAR_UUID,
-      (_data) => {
-        console.log('BLE notification received, phase:', phaseRef.current);
-        if (phaseRef.current === 'working') {
-          completeRepRef.current();
+      (data: { [index: number]: number; length: number }) => {
+        if (!data || data.length < 1) return;
+
+        const msgType = data[0];
+        const value   = data[1] ?? 0;
+
+        console.log(`BLE msg type=0x${msgType.toString(16)} value=${value} phase=${phaseRef.current}`);
+
+        if (msgType === MSG_REP) {
+          if (phaseRef.current === 'working') {
+            completeRepRef.current();
+          }
+
+        } else if (msgType === MSG_BPM) {
+          setBpm(value);
+
+        } else if (msgType === MSG_FATIGUE) {
+          const fatigueInsight = FATIGUE_INSIGHT[value];
+          if (fatigueInsight) {
+            setInsight(fatigueInsight);
+          } else {
+            console.warn(`Unknown fatigue value: ${value}`);
+          }
+
+        } else {
+          console.warn(`Unknown BLE message type: 0x${msgType.toString(16)}`);
         }
       }
     );
@@ -90,10 +124,10 @@ const SessionScreen = () => {
     }
 
     return () => {
-      console.log('Removing BLE rep subscription');
+      console.log('Removing BLE subscription');
       subscription?.remove();
     };
-  }, [isConnected, subscribeToNotifications]); // re-runs only if connection drops/reconnects
+  }, [isConnected, subscribeToNotifications]);
 
   const startWorkout = () => {
     setPhase('working');
@@ -101,6 +135,8 @@ const SessionScreen = () => {
     setCurrentRep(1);
     setCompletedSets([]);
     setSetLog([]);
+    setBpm(null);
+    setInsight(null);
   };
 
   function completeRep() {
@@ -138,6 +174,7 @@ const SessionScreen = () => {
   const returnFromBreak = () => {
     if (breakTimer) clearInterval(breakTimer);
     setBreakTimer(null);
+    setInsight(null);
     setPhase('working');
   };
 
@@ -182,13 +219,14 @@ const SessionScreen = () => {
     setSetLog([]);
     setTotalSets(DEFAULT_SETS);
     setTotalReps(DEFAULT_REPS);
+    setBpm(null);
+    setInsight(null);
   };
 
   const setsCompleted = completedSets.length;
   const progressPercent =
     phase === 'working' || phase === 'break'
-      ? ((setsCompleted * totalReps + (currentRep - 1)) /
-      (totalSets * totalReps)) * 100
+      ? ((setsCompleted * totalReps + (currentRep - 1)) / (totalSets * totalReps)) * 100
       : 0;
 
   // ── idle ────────────────────────────────────────────────────────────────────
@@ -269,10 +307,6 @@ const SessionScreen = () => {
 
   // ── working ─────────────────────────────────────────────────────────────────
 
-  /* TODO:
-   * - change to update based on wearable device data instead of button presses
-   * - add warnings if form is incorrect or if user is struggling to complete reps
-   */
   if (phase === 'working') {
     return (
       <View style={styles.container}>
@@ -282,6 +316,13 @@ const SessionScreen = () => {
         </View>
         <Text style={styles.progressText}>{setsCompleted} / {totalSets} sets complete</Text>
         <View style={styles.centerContent}>
+          {insight && (
+            <InsightBox
+              type={insight.type}
+              message={insight.message}
+              bpm={bpm ?? 0}
+            />
+          )}
           <Text style={styles.exerciseLabel}>Bicep Curl</Text>
           <View style={styles.statRow}>
             <View style={styles.statBox}>
@@ -431,28 +472,13 @@ const styles = StyleSheet.create({
   stepperBtnText: { fontSize: 20, fontWeight: '600', color: '#1A1A1A', lineHeight: 22 },
   stepperValue: { fontSize: 22, fontWeight: '700', color: '#1A1A1A', minWidth: 32, textAlign: 'center' },
   sideToggle: {
-    flexDirection: 'row',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#636363',
-    overflow: 'hidden',
+    flexDirection: 'row', borderRadius: 20, borderWidth: 1,
+    borderColor: '#636363', overflow: 'hidden',
   },
-  sideBtn: {
-    paddingHorizontal: 30,
-    paddingVertical: 10,
-    backgroundColor: 'transparent',
-  },
-  sideBtnActive: {
-    backgroundColor: '#D6E0D3',
-  },
-  sideBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#888',
-  },
-  sideBtnTextActive: {
-    color: '#1A1A1A',
-  },
+  sideBtn: { paddingHorizontal: 30, paddingVertical: 10, backgroundColor: 'transparent' },
+  sideBtnActive: { backgroundColor: '#D6E0D3' },
+  sideBtnText: { fontSize: 15, fontWeight: '600', color: '#888' },
+  sideBtnTextActive: { color: '#1A1A1A' },
 });
 
 export default SessionScreen;

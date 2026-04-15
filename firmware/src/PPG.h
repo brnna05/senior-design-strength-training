@@ -44,9 +44,16 @@
 #define MAX30102_PW_18BITS  3
 
 /* ── Heart Rate ─────────────────────────────────────────────────────────── */
-#define HR_SAMPLE_RATE      200
-#define HR_BUFFER_SIZE      200
-#define HR_MIN_VALID_IR     5000
+#define HR_SAMPLE_RATE   200
+
+/*
+ * 600 samples = 3 seconds at 200 Hz.
+ * Guarantees >= 2 peaks even at 40 BPM, giving at least 1 inter-peak
+ * interval to compute from. Memory cost: 600 x 4 = 2.4 kB.
+ */
+#define HR_BUFFER_SIZE   600
+
+#define HR_MIN_VALID_IR  5000
 
 /* ── LED Channel Enum ───────────────────────────────────────────────────── */
 enum max30102_led_channel {
@@ -67,7 +74,7 @@ struct max30102_config {
 typedef struct max30102_data {
     uint32_t raw[MAX30102_MAX_NUM_CHANNELS];
     uint32_t ir_buffer[HR_BUFFER_SIZE];
-    uint8_t  ir_buf_idx;
+    uint16_t ir_buf_idx;   /* uint16_t — HR_BUFFER_SIZE > 255 */
     bool     ir_buf_full;
     int32_t  bpm;
 } ppg_data_t;
@@ -76,5 +83,14 @@ typedef struct max30102_data {
 int ppg_init(int sample_rate_hz);
 void ppg_read(void);
 struct sensor_value *ppg_get_data(void);
+
+/**
+ * @brief Get the latest computed heart rate.
+ *
+ * Computed via inter-peak interval averaging over a 3-second IR window.
+ * Returns -1 if the buffer is not yet full, no finger is detected, or
+ * fewer than 2 peaks were found (cannot form an interval).
+ */
+int32_t ppg_get_bpm(void);
 
 #endif /* PPG_H */
