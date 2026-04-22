@@ -24,9 +24,9 @@
 	};
 
 	zephyr,user {
-		emg-led-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+		ble_led_gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
 		// imu-led-gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
-		ppg-led-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+		ppg_led_gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
 	};
 };
 

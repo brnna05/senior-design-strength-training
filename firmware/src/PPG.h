@@ -45,6 +45,8 @@
 
 /* ── Heart Rate ─────────────────────────────────────────────────────────── */
 #define HR_SAMPLE_RATE   200
+#define HR_MIN_BPM       40
+#define HR_MAX_BPM       240
 
 /*
  * 600 samples = 3 seconds at 200 Hz.
@@ -92,5 +94,7 @@ struct sensor_value *ppg_get_data(void);
  * fewer than 2 peaks were found (cannot form an interval).
  */
 int32_t ppg_get_bpm(void);
+
+int32_t ppg_get_confidence(void);
 
 #endif /* PPG_H */

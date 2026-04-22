@@ -16,7 +16,7 @@
 #define BPM_NOTIFY_PERIOD_MS 1000
 
 static const struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(
-    BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME,
+    BT_LE_ADV_OPT_CONNECTABLE,
     BT_GAP_ADV_FAST_INT_MIN_2,
     BT_GAP_ADV_FAST_INT_MAX_2,
     NULL);
@@ -26,6 +26,11 @@ static const struct bt_data ad[] = {
     BT_DATA(BT_DATA_NAME_COMPLETE,
             CONFIG_BT_DEVICE_NAME,
             sizeof(CONFIG_BT_DEVICE_NAME) - 1),
+};
+
+static const struct bt_data sd[] = {
+    BT_DATA_BYTES(BT_DATA_UUID128_ALL,
+        BT_UUID_128_ENCODE(0x12340001, 0x0000, 0x0000, 0x0000, 0x000000000001)),
 };
 
 /* ── UUIDs — keep in sync with RN app ── */
@@ -51,7 +56,7 @@ BT_GATT_SERVICE_DEFINE(rep_svc,
 static void notify(uint8_t msg_type, uint8_t value)
 {
     uint8_t buf[2] = { msg_type, value };
-    bt_gatt_notify(NULL, &rep_svc.attrs[1], buf, sizeof(buf));
+    bt_gatt_notify(NULL, &rep_svc.attrs[2], buf, sizeof(buf));
     printk("Notified type=0x%02x value=%d\n", msg_type, value);
 }
 
@@ -66,8 +71,15 @@ static void on_connected(struct bt_conn *conn, uint8_t err)
     notify(MSG_BPM, 0);
 }
 
+static void on_disconnected(struct bt_conn *conn, uint8_t reason)
+{
+    printk("Disconnected (reason %u) — restarting advertising\n", reason);
+    bt_le_adv_start(adv_param, ad, ARRAY_SIZE(ad), NULL, 0);
+}
+
 static struct bt_conn_cb conn_callbacks = {
-    .connected = on_connected,
+    .connected    = on_connected,
+    .disconnected = on_disconnected,
 };
 
 /* ── BPM notify work + timer ────────────────────────────────────────────── */
@@ -146,9 +158,17 @@ static int button_init(void)
     return 0;
 }
 
+static const struct gpio_dt_spec ble_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), ble_led_gpios);
+
 int main(void)
 {
     printk("Starting firmware...\n");
+
+    if (!gpio_is_ready_dt(&ble_led)) {
+        return -1;
+    }
+
+    gpio_pin_configure_dt(&ble_led, GPIO_OUTPUT_INACTIVE); 
 
     bt_conn_cb_register(&conn_callbacks);
 
@@ -157,11 +177,12 @@ int main(void)
         return -1;
     }
 
-    if (bt_le_adv_start(adv_param, ad, ARRAY_SIZE(ad), NULL, 0)) {
+    if (bt_le_adv_start(adv_param, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd))) {
         printk("BT advertising failed\n");
         return -1;
     }
 
+    gpio_pin_set_dt(&ble_led, 1);
     printk("BLE advertising as \"%s\"\n", CONFIG_BT_DEVICE_NAME);
 
     /* PPG — starts sampling at 200 Hz internally */

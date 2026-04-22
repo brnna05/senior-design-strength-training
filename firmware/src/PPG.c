@@ -2,18 +2,34 @@
  * PPG.c - MAX30102 PPG Sensor Driver + Application
  * Senior Design - Strength Training
  *
- * Heart rate algorithm: inter-peak interval timing.
+ * Heart rate algorithm: Inter-Beat Interval (IBI) tracking.
  *
- * Old approach (broken):
- *   BPM = peak_count * 60 * SR / BUFFER_SIZE
- *   → only produces multiples of 60 (1 peak=60, 2=120, …)
+ * Translated from the open-source PulseSensor Arduino ISR into Zephyr's
+ * timer + work-queue model.
  *
- * New approach:
- *   For every pair of adjacent peaks at positions p[i] and p[i+1]:
- *     interval_bpm = 60 * SR / (p[i+1] - p[i])
- *   BPM = average of all interval_bpm values in the window.
- *   With SR=200 and a 600-sample (3 s) window this resolves to ~1 BPM
- *   steps across the 40–180 BPM range.
+ * Original Arduino approach (2 ms ISR at 500 Hz, 10-bit ADC):
+ *   - Tracks P (peak) and T (trough) of the pulse waveform each beat.
+ *   - Adaptive threshold = 50 % of the P–T amplitude.
+ *   - IBI = milliseconds between consecutive upward threshold-crossings.
+ *   - BPM = 60000 / (rolling average of last 10 IBI values).
+ *
+ * Zephyr / MAX30102 adaptation notes:
+ *   ┌─────────────────────────────────────────────────────────────────┐
+ *   │ Arduino             │ This file                                 │
+ *   ├─────────────────────┼───────────────────────────────────────────┤
+ *   │ Timer2 ISR          │ k_timer + k_work (ppg_work_handler)       │
+ *   │ analogRead()        │ sensor_sample_fetch / sensor_channel_get  │
+ *   │ 500 Hz / 2 ms step  │ HR_SAMPLE_RATE Hz / MS_PER_SAMPLE ms step │
+ *   │ 10-bit ADC 0–1023   │ 18-bit IR 0–262143; seeds scaled to       │
+ *   │   P/T seed = 512    │   P/T seed = HR_MIN_VALID_IR              │
+ *   │   thresh seed = 530 │   thresh seed = HR_MIN_VALID_IR + 500     │
+ *   │ N > 250 samples     │ N > 250 ms  (unit is already ms in both)  │
+ *   │ N > 2500 samples    │ N > 2500 ms (same)                        │
+ *   └─────────────────────┴───────────────────────────────────────────┘
+ *
+ *  sampleCounter / lastBeatTime are tracked in **milliseconds** in both
+ *  versions, so all timing comparisons (250, 2500, IBI/5*3 …) transfer
+ *  unchanged.  Only the seed/reset amplitude values are rescaled.
  */
 
 #define DT_DRV_COMPAT maxim_max30102
@@ -30,178 +46,102 @@
 
 LOG_MODULE_REGISTER(MAX30102, CONFIG_SENSOR_LOG_LEVEL);
 
-/* ── Heart Rate Constants ───────────────────────────────────────────────── */
-#define HR_MIN_BPM       40
-#define HR_MAX_BPM       180
+/* ── Timing ─────────────────────────────────────────────────────────────── */
 
-/* Minimum samples between two valid peaks at the fastest allowable rate */
-#define HR_MIN_PEAK_DIST (HR_SAMPLE_RATE * 60 / HR_MAX_BPM)  /* ~67 samples */
+/* Milliseconds elapsed per sample (5 ms at 200 Hz). */
+#define MS_PER_SAMPLE   (1000 / HR_SAMPLE_RATE)
 
-/* Moving-average smoothing window (low-pass filter before peak detection) */
-#define HR_SMOOTH_SIZE   5
+/* ── IBI Seed / Reset Values (scaled for 18-bit MAX30102 IR) ────────────── */
 
-/* Number of consecutive valid BPM readings to average for final output */
-#define HR_AVG_SIZE      4
+/*
+ * Arduino seeded P and T at the ADC mid-point (512 / 1023).
+ * For MAX30102 we use HR_MIN_VALID_IR as a conservative "no-signal" level.
+ * The adaptive threshold self-corrects within the first beat cycle.
+ */
+#define IBI_SEED_MIDPOINT   HR_MIN_VALID_IR          /* ~midpoint with no finger */
+#define IBI_SEED_THRESH     (HR_MIN_VALID_IR + 500)  /* just above mid at reset  */
 
-/* Maximum peaks we expect in a 3-second window (180 BPM → ~9 peaks) */
-#define HR_MAX_PEAKS     20
+/* ── IBI State (mirrors Arduino volatile globals) ───────────────────────── */
 
-static int32_t bpm_history[HR_AVG_SIZE] = {0};
-static uint8_t bpm_history_idx   = 0;
-static uint8_t bpm_history_count = 0;
+static int32_t  ibi_rate[10];          /* last 10 IBI values (ms)            */
+static uint32_t sample_counter = 0;    /* running ms clock                   */
+static uint32_t last_beat_time = 0;    /* ms timestamp of last detected beat */
+static int32_t  P_val;                 /* peak of current pulse waveform     */
+static int32_t  T_val;                 /* trough of current pulse waveform   */
+static int32_t  thresh;                /* adaptive beat-detection threshold  */
+static int32_t  amp;                   /* P–T amplitude of current beat      */
+static bool     first_beat  = true;    /* startup: first crossing, skip IBI  */
+static bool     second_beat = false;   /* startup: seed rate[] with 1st IBI  */
+static bool     pulse_flag  = false;   /* true while signal is above thresh  */
+static int32_t  ibi         = 600;     /* current IBI (ms), seeded at 100 BPM*/
 
-/* Latest valid BPM written by ppg_read(), read by ppg_get_bpm() */
-static int32_t latest_bpm = -1;
+/* ── Output State ───────────────────────────────────────────────────────── */
 
-struct sensor_value ir_val;
+/* Latest valid BPM (−1 = not yet available). */
+static int32_t  latest_bpm       = -1;
+
+/*
+ * Count of consecutive valid BPM readings (0–10).
+ * Used by ppg_get_confidence() to indicate warm-up progress.
+ */
+static uint8_t  valid_bpm_count  = 0;
+
+/* ── Shared Sensor Handle ────────────────────────────────────────────────── */
+
+static struct sensor_value ir_val;
 const struct device *dev = DEVICE_DT_GET_ANY(maxim_max30102);
 
-/* ── Heart Rate: Inter-Peak Interval Algorithm ──────────────────────────── */
-static int32_t max30102_calc_heart_rate(struct max30102_data *data)
-{
-    if (!data->ir_buf_full) {
-        return -1;
-    }
+/* ══════════════════════════════════════════════════════════════════════════
+ * DRIVER LAYER  (sample_fetch / channel_get / init / DT macro)
+ * ══════════════════════════════════════════════════════════════════════════ */
 
-    /* ── Step 1: finger-presence check via mean IR level ── */
-    uint64_t sum = 0;
-    for (int i = 0; i < HR_BUFFER_SIZE; i++) {
-        sum += data->ir_buffer[i];
-    }
-    uint32_t mean = (uint32_t)(sum / HR_BUFFER_SIZE);
-
-    if (mean < HR_MIN_VALID_IR) {
-        printk("PPG: no finger (mean IR=%u)\n", mean);
-        return -1;
-    }
-
-    /* ── Step 2: low-pass filter — moving average ── */
-    uint32_t smoothed[HR_BUFFER_SIZE];
-    for (int i = 0; i < HR_BUFFER_SIZE; i++) {
-        uint64_t w = 0;
-        int n = 0;
-        for (int j = i - HR_SMOOTH_SIZE / 2;
-             j <= i + HR_SMOOTH_SIZE / 2; j++) {
-            if (j >= 0 && j < HR_BUFFER_SIZE) {
-                w += data->ir_buffer[j];
-                n++;
-            }
-        }
-        smoothed[i] = (uint32_t)(w / n);
-    }
-
-    /* ── Step 3: adaptive threshold = mean of smoothed signal ── */
-    uint64_t smooth_sum = 0;
-    for (int i = 0; i < HR_BUFFER_SIZE; i++) {
-        smooth_sum += smoothed[i];
-    }
-    uint32_t threshold = (uint32_t)(smooth_sum / HR_BUFFER_SIZE);
-
-    /* ── Step 4: locate upward threshold-crossings (peak positions) ── */
-    int peak_pos[HR_MAX_PEAKS];
-    int peak_count = 0;
-    int last_peak  = -HR_MIN_PEAK_DIST;
-    bool above = (smoothed[0] > threshold);
-
-    for (int i = 1; i < HR_BUFFER_SIZE && peak_count < HR_MAX_PEAKS; i++) {
-        bool now_above = (smoothed[i] > threshold);
-        if (!above && now_above) {
-            if ((i - last_peak) >= HR_MIN_PEAK_DIST) {
-                peak_pos[peak_count++] = i;
-                last_peak = i;
-            }
-        }
-        above = now_above;
-    }
-
-    /* Need at least 2 peaks to form 1 interval */
-    if (peak_count < 2) {
-        printk("PPG: only %d peak(s) found — need >= 2\n", peak_count);
-        return -1;
-    }
-
-    /* ── Step 5: BPM from each inter-peak interval, then average ──
-     *
-     * BPM_i = 60 * HR_SAMPLE_RATE / (peak_pos[i+1] - peak_pos[i])
-     *
-     * Example: peaks at samples 80 and 247 → interval = 167 samples
-     *   BPM = 60 * 200 / 167 = 71.9 → 72 BPM
-     *
-     * This gives ~1 BPM resolution vs the old "multiples of 60" behaviour.
-     */
-    int64_t bpm_acc = 0;
-    int intervals   = peak_count - 1;
-
-    for (int i = 0; i < intervals; i++) {
-        int interval = peak_pos[i + 1] - peak_pos[i];
-        bpm_acc += (int64_t)(60 * HR_SAMPLE_RATE) / interval;
-    }
-
-    int32_t raw_bpm = (int32_t)(bpm_acc / intervals);
-
-    /* ── Step 6: range validation ── */
-    if (raw_bpm < HR_MIN_BPM || raw_bpm > HR_MAX_BPM) {
-        printk("PPG: raw BPM %d out of range\n", raw_bpm);
-        return -1;
-    }
-
-    /* ── Step 7: rolling average over last HR_AVG_SIZE readings ── */
-    bpm_history[bpm_history_idx] = raw_bpm;
-    bpm_history_idx = (bpm_history_idx + 1) % HR_AVG_SIZE;
-    if (bpm_history_count < HR_AVG_SIZE) {
-        bpm_history_count++;
-    }
-
-    int64_t avg_acc = 0;
-    for (int i = 0; i < bpm_history_count; i++) {
-        avg_acc += bpm_history[i];
-    }
-
-    return (int32_t)(avg_acc / bpm_history_count);
-}
-
-/* ── Sample Fetch ───────────────────────────────────────────────────────── */
 static int max30102_sample_fetch(const struct device *dev,
                                  enum sensor_channel chan)
 {
-    struct max30102_data *data   = dev->data;
-    const struct max30102_config *config = dev->config;
+    struct max30102_data *data         = dev->data;
+    const struct max30102_config *cfg  = dev->config;
 
     uint8_t buffer[MAX30102_MAX_NUM_CHANNELS * MAX30102_BYTES_PER_CHANNEL];
 
-    if (i2c_burst_read_dt(&config->i2c, MAX30102_REG_FIFO_DATA,
+    if (i2c_burst_read_dt(&cfg->i2c, MAX30102_REG_FIFO_DATA,
                           buffer, sizeof(buffer))) {
         LOG_ERR("Failed to read FIFO");
         return -EIO;
     }
 
+    /* Unpack RED (bytes 0–2) */
     data->raw[MAX30102_LED_CHANNEL_RED] =
         ((uint32_t)buffer[0] << 16) |
         ((uint32_t)buffer[1] <<  8) |
          (uint32_t)buffer[2];
     data->raw[MAX30102_LED_CHANNEL_RED] &= MAX30102_FIFO_DATA_MASK;
 
+    /* Unpack IR (bytes 3–5) */
     data->raw[MAX30102_LED_CHANNEL_IR] =
         ((uint32_t)buffer[3] << 16) |
         ((uint32_t)buffer[4] <<  8) |
          (uint32_t)buffer[5];
     data->raw[MAX30102_LED_CHANNEL_IR] &= MAX30102_FIFO_DATA_MASK;
 
+    /* Clear interrupt status */
     uint8_t status;
-    i2c_reg_read_byte_dt(&config->i2c, MAX30102_REG_INT_STS1, &status);
+    i2c_reg_read_byte_dt(&cfg->i2c, MAX30102_REG_INT_STS1, &status);
 
+    /*
+     * Store into circular IR buffer (kept for diagnostics / future SpO2 use).
+     * The IBI algorithm processes samples one-at-a-time in ppg_read(), so
+     * ir_buf_full is informational only — BPM does not wait for it.
+     */
     data->ir_buffer[data->ir_buf_idx] = data->raw[MAX30102_LED_CHANNEL_IR];
     data->ir_buf_idx++;
-
     if (data->ir_buf_idx >= HR_BUFFER_SIZE) {
-        data->ir_buf_idx = 0;
+        data->ir_buf_idx  = 0;
         data->ir_buf_full = true;
     }
 
     return 0;
 }
 
-/* ── Channel Get ────────────────────────────────────────────────────────── */
 static int max30102_channel_get(const struct device *dev,
                                 enum sensor_channel chan,
                                 struct sensor_value *val)
@@ -224,50 +164,51 @@ static int max30102_channel_get(const struct device *dev,
     return 0;
 }
 
-/* ── Driver API ─────────────────────────────────────────────────────────── */
 static const struct sensor_driver_api max30102_driver_api = {
     .sample_fetch = max30102_sample_fetch,
     .channel_get  = max30102_channel_get,
 };
 
-/* ── Device Init ────────────────────────────────────────────────────────── */
 static int max30102_init(const struct device *dev)
 {
-    const struct max30102_config *config = dev->config;
-    struct max30102_data *data = dev->data;
+    const struct max30102_config *cfg = dev->config;
+    struct max30102_data *data        = dev->data;
     uint8_t part_id, mode_cfg;
 
     memset(data, 0, sizeof(*data));
 
-    if (!device_is_ready(config->i2c.bus)) {
+    if (!device_is_ready(cfg->i2c.bus)) {
         LOG_ERR("I2C bus not ready");
         return -ENODEV;
     }
 
-    if (i2c_reg_read_byte_dt(&config->i2c, MAX30102_REG_PART_ID, &part_id)) {
+    if (i2c_reg_read_byte_dt(&cfg->i2c, MAX30102_REG_PART_ID, &part_id)) {
         LOG_ERR("Could not read Part ID");
         return -EIO;
     }
     if (part_id != MAX30102_PART_ID) {
-        LOG_ERR("Wrong Part ID: 0x%02x (expected 0x%02x)", part_id, MAX30102_PART_ID);
+        LOG_ERR("Wrong Part ID: 0x%02x (expected 0x%02x)",
+                part_id, MAX30102_PART_ID);
         return -EIO;
     }
 
-    if (i2c_reg_write_byte_dt(&config->i2c, MAX30102_REG_MODE_CFG,
+    /* Reset the device and wait for the bit to self-clear. */
+    if (i2c_reg_write_byte_dt(&cfg->i2c, MAX30102_REG_MODE_CFG,
                                MAX30102_MODE_CFG_RESET_MASK)) {
         return -EIO;
     }
     do {
-        if (i2c_reg_read_byte_dt(&config->i2c, MAX30102_REG_MODE_CFG, &mode_cfg)) {
+        if (i2c_reg_read_byte_dt(&cfg->i2c,
+                                  MAX30102_REG_MODE_CFG, &mode_cfg)) {
             return -EIO;
         }
     } while (mode_cfg & MAX30102_MODE_CFG_RESET_MASK);
 
-    if (i2c_reg_write_byte_dt(&config->i2c, MAX30102_REG_FIFO_CFG, config->fifo) ||
-        i2c_reg_write_byte_dt(&config->i2c, MAX30102_REG_MODE_CFG, config->mode) ||
-        i2c_reg_write_byte_dt(&config->i2c, MAX30102_REG_SPO2_CFG, config->spo2) ||
-        i2c_reg_write_byte_dt(&config->i2c, MAX30102_REG_LED1_PA,  config->led_pa[0]) ||
-        i2c_reg_write_byte_dt(&config->i2c, MAX30102_REG_LED2_PA,  config->led_pa[1])) {
+    if (i2c_reg_write_byte_dt(&cfg->i2c, MAX30102_REG_FIFO_CFG, cfg->fifo) ||
+        i2c_reg_write_byte_dt(&cfg->i2c, MAX30102_REG_MODE_CFG, cfg->mode) ||
+        i2c_reg_write_byte_dt(&cfg->i2c, MAX30102_REG_SPO2_CFG, cfg->spo2) ||
+        i2c_reg_write_byte_dt(&cfg->i2c, MAX30102_REG_LED1_PA,  cfg->led_pa[0]) ||
+        i2c_reg_write_byte_dt(&cfg->i2c, MAX30102_REG_LED2_PA,  cfg->led_pa[1])) {
         return -EIO;
     }
 
@@ -276,20 +217,19 @@ static int max30102_init(const struct device *dev)
     return 0;
 }
 
-/* ── Devicetree Instantiation ───────────────────────────────────────────── */
 #define MAX30102_DEFINE(inst)                                                   \
     static struct max30102_data max30102_data_##inst;                           \
                                                                                 \
     static const struct max30102_config max30102_config_##inst = {              \
         .i2c = I2C_DT_SPEC_INST_GET(inst),                                     \
-        .fifo = (DT_INST_PROP(inst, smp_ave)                                   \
+        .fifo = (DT_INST_PROP(inst, smp_ave)                                    \
                     << MAX30102_FIFO_CFG_SMP_AVE_SHIFT) |                       \
                 COND_CODE_1(DT_INST_PROP(inst, fifo_rollover_en),               \
                     (MAX30102_FIFO_CFG_ROLLOVER_MASK |), ())                    \
-                (DT_INST_PROP(inst, fifo_a_full)                               \
+                (DT_INST_PROP(inst, fifo_a_full)                                \
                     << MAX30102_FIFO_CFG_FULL_SHIFT),                           \
-        .mode = DT_INST_PROP(inst, mode),                                      \
-        .spo2 = (DT_INST_PROP(inst, adc_rge)                                   \
+        .mode = DT_INST_PROP(inst, mode),                                       \
+        .spo2 = (DT_INST_PROP(inst, adc_rge)                                    \
                     << MAX30102_SPO2_ADC_RGE_SHIFT) |                           \
                 (DT_INST_PROP(inst, sr)  << MAX30102_SPO2_SR_SHIFT) |           \
                 (MAX30102_PW_18BITS      << MAX30102_SPO2_PW_SHIFT),            \
@@ -305,8 +245,29 @@ static int max30102_init(const struct device *dev)
 DT_INST_FOREACH_STATUS_OKAY(MAX30102_DEFINE)
 
 /* ══════════════════════════════════════════════════════════════════════════
- * APPLICATION LAYER
+ * APPLICATION LAYER  (IBI beat detection, BPM averaging)
  * ══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * ibi_reset() - Restore IBI state variables to power-on defaults.
+ *
+ * Called at startup (ppg_init) and whenever 2.5 s pass with no beat.
+ * Mirrors the Arduino ISR's "N > 2500" recovery block.
+ */
+static void ibi_reset(void)
+{
+    thresh          = IBI_SEED_THRESH;
+    P_val           = IBI_SEED_MIDPOINT;
+    T_val           = IBI_SEED_MIDPOINT;
+    last_beat_time  = sample_counter;
+    first_beat      = true;
+    second_beat     = false;
+    pulse_flag      = false;
+    latest_bpm      = -1;
+    valid_bpm_count = 0;
+}
+
+/* ── Work / Timer Plumbing ───────────────────────────────────────────────── */
 
 static struct k_work ppg_work;
 
@@ -322,26 +283,58 @@ void PPG_handler(struct k_timer *timer_id)
 
 K_TIMER_DEFINE(ppg_timer, PPG_handler, NULL);
 
+/* ── Public API ─────────────────────────────────────────────────────────── */
+
 int ppg_init(int sample_rate_hz)
 {
     if (!device_is_ready(dev)) {
         printk("MAX30102 not ready\n");
         return -1;
     }
-    ir_val.val1  = 0;
-    ir_val.val2  = 0;
-    latest_bpm   = -1;
+
+    ir_val.val1 = 0;
+    ir_val.val2 = 0;
+
+    /* Initialise IBI tracking state. */
+    sample_counter = 0;
+    ibi            = 600;           /* 100 BPM seed — overwritten after 1st beat */
+    for (int i = 0; i < 10; i++) {
+        ibi_rate[i] = ibi;
+    }
+    ibi_reset();
 
     uint32_t period_us = 1000000U / (uint32_t)sample_rate_hz;
     k_work_init(&ppg_work, ppg_work_handler);
     k_timer_start(&ppg_timer, K_USEC(period_us), K_USEC(period_us));
 
-    printk("PPG: initialized at %d Hz, buffer=%d samples (%.1f s)\n",
-           sample_rate_hz, HR_BUFFER_SIZE,
-           (float)HR_BUFFER_SIZE / sample_rate_hz);
+    printk("PPG: IBI mode, %d Hz (%d ms/sample), buffer=%d samples\n",
+           sample_rate_hz, MS_PER_SAMPLE, HR_BUFFER_SIZE);
     return 0;
 }
 
+/*
+ * ppg_read() - Called every MS_PER_SAMPLE ms by the work handler.
+ *
+ * Implements the PulseSensor IBI algorithm sample-by-sample, translated
+ * from the Arduino Timer2 ISR.  Variable names are kept close to the
+ * original (P→P_val, T→T_val, Pulse→pulse_flag, IBI→ibi, N→N) to make
+ * side-by-side comparison straightforward.
+ *
+ * Signal path per call:
+ *   1. Fetch one IR sample from the MAX30102.
+ *   2. Finger-presence guard — bail out if IR is below HR_MIN_VALID_IR.
+ *   3. Advance the ms clock (sample_counter).
+ *   4. Track trough (T_val) in the falling portion of the wave.
+ *   5. Track peak (P_val) in the rising portion.
+ *   6. Upward threshold-crossing → beat detected:
+ *        a. Compute IBI.
+ *        b. Seed rate[] on second beat; discard IBI on first beat.
+ *        c. Roll the 10-element rate array, compute average, derive BPM.
+ *   7. Downward threshold-crossing → beat over:
+ *        a. Compute amp = P_val − T_val.
+ *        b. Set new thresh at 50 % of amp (adaptive threshold).
+ *   8. 2.5 s timeout without a beat → full IBI reset.
+ */
 void ppg_read(void)
 {
     if (sensor_sample_fetch(dev) < 0) {
@@ -351,19 +344,125 @@ void ppg_read(void)
 
     sensor_channel_get(dev, SENSOR_CHAN_IR, &ir_val);
 
-    /*
-     * Recalculate once per full buffer revolution (every HR_BUFFER_SIZE
-     * samples). ir_buf_idx just wrapped to 0 at that moment.
-     */
-    struct max30102_data *data = dev->data;
-    if (data->ir_buf_full && data->ir_buf_idx == 0) {
-        int32_t bpm = max30102_calc_heart_rate(data);
-        if (bpm > 0) {
-            latest_bpm = bpm;
-            printk("PPG: BPM = %d\n", (int)bpm);
+    int32_t signal = (int32_t)ir_val.val1;
+
+    /* ── 2. Finger-presence guard ── */
+    if (signal < HR_MIN_VALID_IR) {
+        /*
+         * No finger on sensor.  Hold state frozen; if the absence lasts
+         * long enough the 2.5 s timeout below will perform a full reset.
+         */
+        sample_counter += MS_PER_SAMPLE;
+        int32_t N = (int32_t)(sample_counter - last_beat_time);
+        if (N > 2500) {
+            printk("PPG: no finger / no beat for 2.5 s — resetting\n");
+            ibi_reset();
         }
+        return;
+    }
+
+    /* ── 3. Advance ms clock ── */
+    sample_counter += MS_PER_SAMPLE;
+    int32_t N = (int32_t)(sample_counter - last_beat_time);
+
+    /* ── 4. Track trough ──
+     *
+     * Only update T_val when we are below thresh and past 3/5 of the last
+     * IBI — same dichrotic-notch avoidance as the Arduino original.
+     */
+    if (signal < thresh && N > (ibi / 5) * 3) {
+        if (signal < T_val) {
+            T_val = signal;
+        }
+    }
+
+    /* ── 5. Track peak ── */
+    if (signal > thresh && signal > P_val) {
+        P_val = signal;
+    }
+
+    /* ── 6. Upward threshold-crossing → beat detected ──────────────────── */
+    if (N > 250) {   /* 250 ms minimum — rejects >240 BPM noise */
+        if (signal > thresh && !pulse_flag && N > (ibi / 5) * 3) {
+
+            pulse_flag     = true;
+            ibi            = (int32_t)(sample_counter - last_beat_time);
+            last_beat_time = sample_counter;
+
+            /* ── 6b. Startup seeding ── */
+            if (second_beat) {
+                second_beat = false;
+                /* Fill all 10 slots with the first real IBI so the
+                 * running average starts at a plausible value. */
+                for (int i = 0; i < 10; i++) {
+                    ibi_rate[i] = ibi;
+                }
+            }
+
+            if (first_beat) {
+                /* First crossing is always noisy — discard IBI, arm
+                 * second_beat flag, and return without updating BPM. */
+                first_beat  = false;
+                second_beat = true;
+                return;
+            }
+
+            /* ── 6c. Rolling average of last 10 IBI values → BPM ── */
+            int32_t running_total = 0;
+            for (int i = 0; i < 9; i++) {
+                ibi_rate[i]    = ibi_rate[i + 1]; /* shift left, drop oldest */
+                running_total += ibi_rate[i];
+            }
+            ibi_rate[9]    = ibi;           /* append newest IBI        */
+            running_total += ibi_rate[9];
+            running_total /= 10;            /* average of 10 IBI values */
+
+            int32_t bpm = 60000 / running_total;
+
+            if (bpm >= HR_MIN_BPM && bpm <= HR_MAX_BPM) {
+                latest_bpm = bpm;
+                if (valid_bpm_count < 10) {
+                    valid_bpm_count++;
+                }
+                printk("PPG: IBI=%d ms  BPM=%d\n", (int)ibi, (int)bpm);
+            } else {
+                printk("PPG: BPM %d out of range [%d–%d], discarding\n",
+                       (int)bpm, HR_MIN_BPM, HR_MAX_BPM);
+            }
+        }
+    }
+
+    /* ── 7. Downward threshold-crossing → beat is over ────────────────── */
+    if (signal < thresh && pulse_flag) {
+        pulse_flag = false;
+
+        amp    = P_val - T_val;          /* amplitude of this pulse          */
+        thresh = amp / 2 + T_val;        /* new thresh at 50 % of amplitude  */
+        P_val  = thresh;                 /* reset peak for next beat         */
+        T_val  = thresh;                 /* reset trough for next beat       */
+    }
+
+    /* ── 8. 2.5 s timeout — no beat detected ───────────────────────────── */
+    if (N > 2500) {
+        printk("PPG: no beat for 2.5 s — resetting IBI state\n");
+        ibi_reset();
     }
 }
 
+/* ── Accessors ──────────────────────────────────────────────────────────── */
+
 struct sensor_value *ppg_get_data(void) { return &ir_val; }
+
 int32_t ppg_get_bpm(void) { return latest_bpm; }
+
+/*
+ * ppg_get_confidence() - 0–100 warm-up confidence indicator.
+ *
+ * Returns the percentage of the 10-reading IBI history that has been
+ * populated with real (range-validated) BPM values since the last reset.
+ * 0 = just started / no finger; 100 = fully converged.
+ */
+int32_t ppg_get_confidence(void)
+{
+    return (int32_t)valid_bpm_count * 10;  /* 0, 10, 20 … 100 */
+}
