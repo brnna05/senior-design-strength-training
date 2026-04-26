@@ -7,6 +7,7 @@
 #include "PPG.hpp"
 #include "IMU.h"
 #include "ADC.h"
+#include "edge-impulse-sdk/classifier/ei_run_classifier.h"
 
 /* ── Message types — keep in sync with RN app ── */
 #define MSG_REP     0x01
@@ -158,20 +159,26 @@ int main(void)
         return -1;
     }
     gpio_pin_set_dt(&ppg_led, 1);
-    gpio_pin_set_dt(&imu_led, 1);
 
-    /* IMU — starts sampling at 104 Hz internally */
-    if (IMU_init(104)) {
-        printk("IMU_Init failed.\n");
-        return -1;
-    }
-    gpio_pin_set_dt(&imu_led, 1);
-
+    /* ADC/EMG — starts sampling at 4 kHz internally */
     if (ADC_init()) {
         printk("ADC init failed\n");
         return -1;
     }
     gpio_pin_set_dt(&emg_led, 1);
+
+    /* IMU — starts sampling at 104 Hz internally */
+    // if (IMU_init(104)) {
+    //     printk("IMU_Init failed.\n");
+    //     return -1;
+    // }
+    static const struct device *imu_dev = DEVICE_DT_GET(IMU_NODE);
+    if (!device_is_ready(imu_dev)) {
+        printk("IMU: Zephyr sensor device %s not ready\n", imu_dev->name);
+        printk("IMU: Check your devicetree configuration\n");
+        return -ENODEV;
+    }
+    gpio_pin_set_dt(&imu_led, 1);
 
     while (1) {
         k_sleep(K_FOREVER);
