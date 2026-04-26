@@ -4,7 +4,8 @@
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/drivers/gpio.h>
-#include "PPG.h"
+#include "PPG.hpp"
+#include "IMU.h"
 
 /* ── Message types — keep in sync with RN app ── */
 #define MSG_REP     0x01
@@ -34,18 +35,16 @@ static const struct bt_data sd[] = {
 };
 
 /* ── UUIDs — keep in sync with RN app ── */
-#define REP_SVC_UUID \
-    BT_UUID_DECLARE_128(BT_UUID_128_ENCODE( \
-        0x12340001, 0x0000, 0x0000, 0x0000, 0x000000000001))
+static const struct bt_uuid_128 rep_svc_uuid = BT_UUID_INIT_128(
+    BT_UUID_128_ENCODE(0x12340001, 0x0000, 0x0000, 0x0000, 0x000000000001));
 
-#define REP_CHAR_UUID \
-    BT_UUID_DECLARE_128(BT_UUID_128_ENCODE( \
-        0x12340001, 0x0000, 0x0000, 0x0000, 0x000000000002))
+static const struct bt_uuid_128 rep_char_uuid = BT_UUID_INIT_128(
+    BT_UUID_128_ENCODE(0x12340001, 0x0000, 0x0000, 0x0000, 0x000000000002));
 
 /* ── GATT service ── */
 BT_GATT_SERVICE_DEFINE(rep_svc,
-    BT_GATT_PRIMARY_SERVICE(REP_SVC_UUID),
-    BT_GATT_CHARACTERISTIC(REP_CHAR_UUID,
+    BT_GATT_PRIMARY_SERVICE(&rep_svc_uuid),
+    BT_GATT_CHARACTERISTIC(&rep_char_uuid.uuid,
         BT_GATT_CHRC_NOTIFY,
         BT_GATT_PERM_NONE,
         NULL, NULL, NULL),
@@ -159,16 +158,29 @@ static int button_init(void)
 }
 
 static const struct gpio_dt_spec ble_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), ble_led_gpios);
+static const struct gpio_dt_spec imu_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), imu_led_gpios);
+static const struct gpio_dt_spec ppg_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), ppg_led_gpios);
+static const struct gpio_dt_spec emg_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), emg_led_gpios);
 
 int main(void)
 {
-    printk("Starting firmware...\n");
-
-    if (!gpio_is_ready_dt(&ble_led)) {
+        if (!gpio_is_ready_dt(&ble_led)) {
+        return -1;
+    }
+    if (!gpio_is_ready_dt(&imu_led)) {
+        return -1;
+    }
+    if (!gpio_is_ready_dt(&ppg_led)) {
+        return -1;
+    }
+    if (!gpio_is_ready_dt(&emg_led)) {
         return -1;
     }
 
     gpio_pin_configure_dt(&ble_led, GPIO_OUTPUT_INACTIVE); 
+    gpio_pin_configure_dt(&imu_led, GPIO_OUTPUT_INACTIVE); 
+    gpio_pin_configure_dt(&ppg_led, GPIO_OUTPUT_INACTIVE); 
+    gpio_pin_configure_dt(&emg_led, GPIO_OUTPUT_INACTIVE); 
 
     bt_conn_cb_register(&conn_callbacks);
 
@@ -190,6 +202,15 @@ int main(void)
         printk("PPG init failed\n");
         return -1;
     }
+    gpio_pin_set_dt(&ppg_led, 1);
+    gpio_pin_set_dt(&imu_led, 1);
+
+    /* IMU — starts sampling at 104 Hz internally */
+    if (IMU_init(104)) {
+        printk("IMU_Init failed.\n");
+        return -1;
+    }
+    gpio_pin_set_dt(&imu_led, 1);
 
     /* BPM notify timer — fires every BPM_NOTIFY_PERIOD_MS */
     k_work_init(&bpm_work, bpm_work_handler);

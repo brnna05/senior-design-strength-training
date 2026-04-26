@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ── Sampling config ─────────────────────────────────────────────────────── */
 #define SEQUENCE_SAMPLES      64    /* power-of-2 window for EMG analysis     */
 #define SEQUENCE_RESOLUTION   12
@@ -70,5 +74,9 @@ int32_t *EMG_get_raw();
 int EMG_compute_from_window();
 
 emg_metrics_t *EMG_get_metrics();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ADC_H_ */

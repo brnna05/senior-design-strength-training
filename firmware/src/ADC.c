@@ -3,8 +3,8 @@
 #include <zephyr/sys/printk.h>
 #include <math.h>
 #include "ADC.h"
-#include "LSM6DS3TR.h"
-#include "PPG.h"
+#include "IMU.h"
+#include "PPG.hpp"
 
 #define EMG_FREQUENCY   4000
 #define EMG_PERIOD      K_USEC(1000000 / EMG_FREQUENCY)

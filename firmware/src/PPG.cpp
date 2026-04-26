@@ -34,7 +34,7 @@
 
 #define DT_DRV_COMPAT maxim_max30102
 
-#include "PPG.h"
+#include "PPG.hpp"
 
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -98,8 +98,8 @@ const struct device *dev = DEVICE_DT_GET_ANY(maxim_max30102);
 static int max30102_sample_fetch(const struct device *dev,
                                  enum sensor_channel chan)
 {
-    struct max30102_data *data         = dev->data;
-    const struct max30102_config *cfg  = dev->config;
+    struct max30102_data *data = (max30102_data *)dev->data;
+    const struct max30102_config *cfg  = (const struct max30102_config *)dev->config;
 
     uint8_t buffer[MAX30102_MAX_NUM_CHANNELS * MAX30102_BYTES_PER_CHANNEL];
 
@@ -146,7 +146,7 @@ static int max30102_channel_get(const struct device *dev,
                                 enum sensor_channel chan,
                                 struct sensor_value *val)
 {
-    struct max30102_data *data = dev->data;
+    struct max30102_data *data = (max30102_data *)dev->data;
 
     switch (chan) {
     case SENSOR_CHAN_RED:
@@ -171,8 +171,8 @@ static const struct sensor_driver_api max30102_driver_api = {
 
 static int max30102_init(const struct device *dev)
 {
-    const struct max30102_config *cfg = dev->config;
-    struct max30102_data *data        = dev->data;
+    const struct max30102_config *cfg = (struct max30102_config *)dev->config;
+    struct max30102_data *data        = (struct max30102_data *)dev->data;
     uint8_t part_id, mode_cfg;
 
     memset(data, 0, sizeof(*data));
@@ -233,8 +233,8 @@ static int max30102_init(const struct device *dev)
                     << MAX30102_SPO2_ADC_RGE_SHIFT) |                           \
                 (DT_INST_PROP(inst, sr)  << MAX30102_SPO2_SR_SHIFT) |           \
                 (MAX30102_PW_18BITS      << MAX30102_SPO2_PW_SHIFT),            \
-        .led_pa[0] = DT_INST_PROP(inst, led1_pa),                              \
-        .led_pa[1] = DT_INST_PROP(inst, led2_pa),                              \
+        .led_pa = { DT_INST_PROP(inst, led1_pa),                                \
+                    DT_INST_PROP(inst, led2_pa) },                              \
     };                                                                          \
                                                                                 \
     DEVICE_DT_INST_DEFINE(inst, max30102_init, NULL,                            \
@@ -278,7 +278,9 @@ static void ppg_work_handler(struct k_work *work)
 
 void PPG_handler(struct k_timer *timer_id)
 {
-    k_work_submit(&ppg_work);
+    if (!k_work_is_pending(&ppg_work)) {
+        k_work_submit(&ppg_work);
+    }
 }
 
 K_TIMER_DEFINE(ppg_timer, PPG_handler, NULL);
@@ -311,6 +313,8 @@ int ppg_init(int sample_rate_hz)
            sample_rate_hz, MS_PER_SAMPLE, HR_BUFFER_SIZE);
     return 0;
 }
+
+static bool ibi_seeded = false;
 
 /*
  * ppg_read() - Called every MS_PER_SAMPLE ms by the work handler.
@@ -358,6 +362,16 @@ void ppg_read(void)
             printk("PPG: no finger / no beat for 2.5 s — resetting\n");
             ibi_reset();
         }
+        return;
+    }
+
+    if (!ibi_seeded) {
+        P_val       = signal;
+        T_val       = signal;
+        thresh      = signal;
+        ibi_seeded  = true;
+        sample_counter += MS_PER_SAMPLE;
+        last_beat_time  = sample_counter;
         return;
     }
 

@@ -55,7 +55,7 @@
  */
 #define HR_BUFFER_SIZE   600
 
-#define HR_MIN_VALID_IR  5000
+#define HR_MIN_VALID_IR  20000
 
 /* ── LED Channel Enum ───────────────────────────────────────────────────── */
 enum max30102_led_channel {

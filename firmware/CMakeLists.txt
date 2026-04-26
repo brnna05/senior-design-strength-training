@@ -7,8 +7,8 @@ set(DTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/model)
 
 target_sources(app PRIVATE 
-    src/main.c
+    src/main.cpp
     src/ADC.c
-    src/LSM6DS3TR.c
-    src/PPG.c
+    src/IMU.c
+    src/PPG.cpp
 )

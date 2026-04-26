@@ -1,151 +1,151 @@
-/*
- * IMU.c - LSM6DSL IMU Driver
- * Senior Design - Strength Training
- *
- * - Timer-based periodic sampling (accel + gyro)
- * - Hardware interrupt on INT1 for significant motion detection
- */
+// /*
+//  * IMU.c - LSM6DSL IMU Driver
+//  * Senior Design - Strength Training
+//  *
+//  * - Timer-based periodic sampling (accel + gyro)
+//  * - Hardware interrupt on INT1 for significant motion detection
+//  */
 
-#include "LSM6DS3TR.h"
+// #include "LSM6DS3TR.h"
 
-#include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/devicetree.h>
-#include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/sys/printk.h>
+// #include <zephyr/kernel.h>
+// #include <zephyr/device.h>
+// #include <zephyr/devicetree.h>
+// #include <zephyr/drivers/sensor.h>
+// #include <zephyr/drivers/gpio.h>
+// #include <zephyr/sys/printk.h>
 
-/* Devices */
-static const struct device *imu_dev = DEVICE_DT_GET(IMU_NODE);
+// /* Devices */
+// static const struct device *imu_dev = DEVICE_DT_GET(IMU_NODE);
 
-static const struct gpio_dt_spec int1_gpio =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(lsm6dsl), irq_gpios);
+// static const struct gpio_dt_spec int1_gpio =
+//     GPIO_DT_SPEC_GET(DT_NODELABEL(lsm6dsl), irq_gpios);
 
-/* Work + Timer */
-static struct k_work imu_work;
-static struct gpio_callback gpio_cb;
+// /* Work + Timer */
+// static struct k_work imu_work;
+// static struct gpio_callback gpio_cb;
 
-K_TIMER_DEFINE(imu_timer, IMU_handler, NULL);
+// K_TIMER_DEFINE(imu_timer, IMU_handler, NULL);
 
-/* Timer Callback (interrupt context) */
-void IMU_handler(struct k_timer *timer_id)
-{
-    k_work_submit(&imu_work);
-}
+// /* Timer Callback (interrupt context) */
+// void IMU_handler(struct k_timer *timer_id)
+// {
+//     k_work_submit(&imu_work);
+// }
 
-/* Work Handler (work queue thread) */
-static void imu_work_handler(struct k_work *work)
-{
-    IMU_sample();
-}
+// /* Work Handler (work queue thread) */
+// static void imu_work_handler(struct k_work *work)
+// {
+//     IMU_sample();
+// }
 
-/* Significant Motion Interrupt Handler */
-static void int1_handler(const struct device *dev,
-                         struct gpio_callback *cb, uint32_t pins)
-{
-    printk("IMU: Significant motion detected\n");
-    /* Motion detected - can be used to trigger other actions if needed */
-}
+// /* Significant Motion Interrupt Handler */
+// static void int1_handler(const struct device *dev,
+//                          struct gpio_callback *cb, uint32_t pins)
+// {
+//     printk("IMU: Significant motion detected\n");
+//     /* Motion detected - can be used to trigger other actions if needed */
+// }
 
-imu_data_t imu_data;
-int IMU_init(int sample_rate_hz)
-{
-    /* Check IMU device is ready */
-    if (!device_is_ready(imu_dev)) {
-        printk("IMU: device %s not ready\n", imu_dev->name);
-        return -ENODEV;
-    }
+// imu_data_t imu_data;
+// int IMU_init(int sample_rate_hz)
+// {
+//     /* Check IMU device is ready */
+//     if (!device_is_ready(imu_dev)) {
+//         printk("IMU: device %s not ready\n", imu_dev->name);
+//         return -ENODEV;
+//     }
 
-    /* Set accelerometer ODR */
-    struct sensor_value odr = {
-        .val1 = sample_rate_hz,
-        .val2 = 0,
-    };
+//     /* Set accelerometer ODR */
+//     struct sensor_value odr = {
+//         .val1 = sample_rate_hz,
+//         .val2 = 0,
+//     };
 
-    if (sensor_attr_set(imu_dev, SENSOR_CHAN_ACCEL_XYZ,
-                        SENSOR_ATTR_SAMPLING_FREQUENCY, &odr) < 0) {
-        printk("IMU: could not set accel ODR to %d Hz\n", sample_rate_hz);
-        return -EIO;
-    }
+//     if (sensor_attr_set(imu_dev, SENSOR_CHAN_ACCEL_XYZ,
+//                         SENSOR_ATTR_SAMPLING_FREQUENCY, &odr) < 0) {
+//         printk("IMU: could not set accel ODR to %d Hz\n", sample_rate_hz);
+//         return -EIO;
+//     }
 
-    if (sensor_attr_set(imu_dev, SENSOR_CHAN_GYRO_XYZ,
-                        SENSOR_ATTR_SAMPLING_FREQUENCY, &odr) < 0) {
-        printk("IMU: could not set gyro ODR to %d Hz\n", sample_rate_hz);
-        return -EIO;
-    }
+//     if (sensor_attr_set(imu_dev, SENSOR_CHAN_GYRO_XYZ,
+//                         SENSOR_ATTR_SAMPLING_FREQUENCY, &odr) < 0) {
+//         printk("IMU: could not set gyro ODR to %d Hz\n", sample_rate_hz);
+//         return -EIO;
+//     }
 
-    /* ── Configure INT1 GPIO for significant motion interrupt ── */
-    if (!device_is_ready(int1_gpio.port)) {
-        printk("IMU: INT1 GPIO not ready\n");
-        return -ENODEV;
-    }
+//     /* ── Configure INT1 GPIO for significant motion interrupt ── */
+//     if (!device_is_ready(int1_gpio.port)) {
+//         printk("IMU: INT1 GPIO not ready\n");
+//         return -ENODEV;
+//     }
 
-    if (gpio_pin_configure_dt(&int1_gpio, GPIO_INPUT) < 0) {
-        printk("IMU: failed to configure INT1 pin\n");
-        return -EIO;
-    }
+//     if (gpio_pin_configure_dt(&int1_gpio, GPIO_INPUT) < 0) {
+//         printk("IMU: failed to configure INT1 pin\n");
+//         return -EIO;
+//     }
 
-    if (gpio_pin_interrupt_configure_dt(&int1_gpio,
-                                         GPIO_INT_EDGE_TO_ACTIVE) < 0) {
-        printk("IMU: failed to configure INT1 interrupt\n");
-        return -EIO;
-    }
+//     if (gpio_pin_interrupt_configure_dt(&int1_gpio,
+//                                          GPIO_INT_EDGE_TO_ACTIVE) < 0) {
+//         printk("IMU: failed to configure INT1 interrupt\n");
+//         return -EIO;
+//     }
 
-    gpio_init_callback(&gpio_cb, int1_handler, BIT(int1_gpio.pin));
-    gpio_add_callback(int1_gpio.port, &gpio_cb);
+//     gpio_init_callback(&gpio_cb, int1_handler, BIT(int1_gpio.pin));
+//     gpio_add_callback(int1_gpio.port, &gpio_cb);
 
-    printk("IMU: INT1 significant motion interrupt configured on P1.05\n");
+//     printk("IMU: INT1 significant motion interrupt configured on P1.05\n");
 
-    // init data struct
-    imu_data.accel_x = 0;
-    imu_data.accel_y = 0;
-    imu_data.accel_z = 0;
-    imu_data.gyro_x = 0;
-    imu_data.gyro_y = 0;
-    imu_data.gyro_z = 0;
+//     // init data struct
+//     imu_data.accel_x = 0;
+//     imu_data.accel_y = 0;
+//     imu_data.accel_z = 0;
+//     imu_data.gyro_x = 0;
+//     imu_data.gyro_y = 0;
+//     imu_data.gyro_z = 0;
 
-    /* Start periodic sampling timer */
-    uint32_t imu_period_us = 1000000U / (uint32_t)sample_rate_hz;
-    k_work_init(&imu_work, imu_work_handler);
-    k_timer_start(&imu_timer, K_USEC(imu_period_us), K_USEC(imu_period_us));
+//     /* Start periodic sampling timer */
+//     uint32_t imu_period_us = 1000000U / (uint32_t)sample_rate_hz;
+//     k_work_init(&imu_work, imu_work_handler);
+//     k_timer_start(&imu_timer, K_USEC(imu_period_us), K_USEC(imu_period_us));
 
-    printk("IMU: initialized at %d Hz\n", sample_rate_hz);
+//     printk("IMU: initialized at %d Hz\n", sample_rate_hz);
 
-    return 0;
-}
+//     return 0;
+// }
 
-void IMU_sample(void)
-{
-    int err;
-    struct sensor_value accel[3], gyro[3];
+// void IMU_sample(void)
+// {
+//     int err;
+//     struct sensor_value accel[3], gyro[3];
 
-    err = sensor_sample_fetch(imu_dev);
-    if (err < 0) {
-        printk("IMU: sample fetch failed (%d)\n", err);
-        return;
-    }
+//     err = sensor_sample_fetch(imu_dev);
+//     if (err < 0) {
+//         printk("IMU: sample fetch failed (%d)\n", err);
+//         return;
+//     }
 
-    err = sensor_channel_get(imu_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
-    if (err < 0) {
-        printk("IMU: accel channel get failed (%d)\n", err);
-        return;
-    }
+//     err = sensor_channel_get(imu_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
+//     if (err < 0) {
+//         printk("IMU: accel channel get failed (%d)\n", err);
+//         return;
+//     }
 
-    err = sensor_channel_get(imu_dev, SENSOR_CHAN_GYRO_XYZ, gyro);
-    if (err < 0) {
-        printk("IMU: gyro channel get failed (%d)\n", err);
-        return;
-    }
+//     err = sensor_channel_get(imu_dev, SENSOR_CHAN_GYRO_XYZ, gyro);
+//     if (err < 0) {
+//         printk("IMU: gyro channel get failed (%d)\n", err);
+//         return;
+//     }
 
-    /* Convert m/s² → mg */
-    imu_data.accel_x = (int32_t)(accel[0].val1 * 1000 + accel[0].val2 / 1000);
-    imu_data.accel_y = (int32_t)(accel[1].val1 * 1000 + accel[1].val2 / 1000);
-    imu_data.accel_z = (int32_t)(accel[2].val1 * 1000 + accel[2].val2 / 1000);
+//     /* Convert m/s² → mg */
+//     imu_data.accel_x = (int32_t)(accel[0].val1 * 1000 + accel[0].val2 / 1000);
+//     imu_data.accel_y = (int32_t)(accel[1].val1 * 1000 + accel[1].val2 / 1000);
+//     imu_data.accel_z = (int32_t)(accel[2].val1 * 1000 + accel[2].val2 / 1000);
 
-    /* Convert rad/s → mdps */
-    imu_data.gyro_x = (int32_t)((gyro[0].val1 * 1000000LL + gyro[0].val2) * 1000LL / 17453LL);
-    imu_data.gyro_y = (int32_t)((gyro[1].val1 * 1000000LL + gyro[1].val2) * 1000LL / 17453LL);
-    imu_data.gyro_z = (int32_t)((gyro[2].val1 * 1000000LL + gyro[2].val2) * 1000LL / 17453LL);
-}
+//     /* Convert rad/s → mdps */
+//     imu_data.gyro_x = (int32_t)((gyro[0].val1 * 1000000LL + gyro[0].val2) * 1000LL / 17453LL);
+//     imu_data.gyro_y = (int32_t)((gyro[1].val1 * 1000000LL + gyro[1].val2) * 1000LL / 17453LL);
+//     imu_data.gyro_z = (int32_t)((gyro[2].val1 * 1000000LL + gyro[2].val2) * 1000LL / 17453LL);
+// }
 
-imu_data_t *IMU_get_data(void) { return &imu_data; }
+// imu_data_t *IMU_get_data(void) { return &imu_data; }
