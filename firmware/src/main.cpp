@@ -6,6 +6,7 @@
 #include <zephyr/drivers/gpio.h>
 #include "PPG.hpp"
 #include "IMU.h"
+#include "ADC.h"
 
 /* ── Message types — keep in sync with RN app ── */
 #define MSG_REP     0x01
@@ -87,6 +88,7 @@ static struct k_timer bpm_timer;
 
 static void bpm_work_handler(struct k_work *work)
 {
+    notify(MSG_FATIGUE, 0); // placeholder until we have real fatigue data
     int32_t bpm = ppg_get_bpm();
 
     if (bpm < 0) {
@@ -103,60 +105,6 @@ static void bpm_timer_handler(struct k_timer *t)
     k_work_submit(&bpm_work);
 }
 
-/* ── Button 1 (sw1) — send rep notification ── */
-static const struct gpio_dt_spec btn1 =
-    GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
-
-static struct gpio_callback btn1_cb_data;
-
-static void btn1_pressed(const struct device *dev,
-                         struct gpio_callback *cb, uint32_t pins)
-{
-    notify(MSG_REP, 0x01);
-}
-
-/* ── Button 0 (sw0) — cycle fatigue level 0→1→2→0 ── */
-static const struct gpio_dt_spec btn0 =
-    GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
-
-static struct gpio_callback btn0_cb_data;
-static uint8_t fatigue_level = 0;
-
-static void btn0_pressed(const struct device *dev,
-                         struct gpio_callback *cb, uint32_t pins)
-{
-    fatigue_level = (fatigue_level + 1) % 3;
-    notify(MSG_FATIGUE, fatigue_level);
-}
-
-/* ── Button init ── */
-static int button_init(void)
-{
-    /* sw1 — rep */
-    if (!gpio_is_ready_dt(&btn1)) {
-        printk("btn1 GPIO not ready\n");
-        return -ENODEV;
-    }
-    gpio_pin_configure_dt(&btn1, GPIO_INPUT);
-    gpio_pin_interrupt_configure_dt(&btn1, GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_init_callback(&btn1_cb_data, btn1_pressed, BIT(btn1.pin));
-    gpio_add_callback(btn1.port, &btn1_cb_data);
-    printk("Button 1 (rep) ready\n");
-
-    /* sw0 — fatigue */
-    if (!gpio_is_ready_dt(&btn0)) {
-        printk("btn0 GPIO not ready\n");
-        return -ENODEV;
-    }
-    gpio_pin_configure_dt(&btn0, GPIO_INPUT);
-    gpio_pin_interrupt_configure_dt(&btn0, GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_init_callback(&btn0_cb_data, btn0_pressed, BIT(btn0.pin));
-    gpio_add_callback(btn0.port, &btn0_cb_data);
-    printk("Button 0 (fatigue) ready\n");
-
-    return 0;
-}
-
 static const struct gpio_dt_spec ble_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), ble_led_gpios);
 static const struct gpio_dt_spec imu_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), imu_led_gpios);
 static const struct gpio_dt_spec ppg_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), ppg_led_gpios);
@@ -164,7 +112,7 @@ static const struct gpio_dt_spec emg_led = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user)
 
 int main(void)
 {
-        if (!gpio_is_ready_dt(&ble_led)) {
+    if (!gpio_is_ready_dt(&ble_led)) {
         return -1;
     }
     if (!gpio_is_ready_dt(&imu_led)) {
@@ -197,6 +145,13 @@ int main(void)
     gpio_pin_set_dt(&ble_led, 1);
     printk("BLE advertising as \"%s\"\n", CONFIG_BT_DEVICE_NAME);
 
+    /* BPM notify timer — fires every BPM_NOTIFY_PERIOD_MS */
+    k_work_init(&bpm_work, bpm_work_handler);
+    k_timer_init(&bpm_timer, bpm_timer_handler, NULL);
+    k_timer_start(&bpm_timer,
+                  K_MSEC(BPM_NOTIFY_PERIOD_MS),
+                  K_MSEC(BPM_NOTIFY_PERIOD_MS));
+
     /* PPG — starts sampling at 200 Hz internally */
     if (ppg_init(HR_SAMPLE_RATE)) {
         printk("PPG init failed\n");
@@ -212,14 +167,11 @@ int main(void)
     }
     gpio_pin_set_dt(&imu_led, 1);
 
-    /* BPM notify timer — fires every BPM_NOTIFY_PERIOD_MS */
-    k_work_init(&bpm_work, bpm_work_handler);
-    k_timer_init(&bpm_timer, bpm_timer_handler, NULL);
-    k_timer_start(&bpm_timer,
-                  K_MSEC(BPM_NOTIFY_PERIOD_MS),
-                  K_MSEC(BPM_NOTIFY_PERIOD_MS));
-
-    button_init();
+    if (ADC_init()) {
+        printk("ADC init failed\n");
+        return -1;
+    }
+    gpio_pin_set_dt(&emg_led, 1);
 
     while (1) {
         k_sleep(K_FOREVER);
