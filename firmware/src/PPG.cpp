@@ -43,8 +43,12 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 #include <string.h>
-
 LOG_MODULE_REGISTER(MAX30102, CONFIG_SENSOR_LOG_LEVEL);
+
+
+#define PPG_FILTER_SETTLE_MS   500   // wait 500ms for HP filter to converge
+static uint32_t filter_settle_end = 0;
+static bool     filter_settled    = false;
 
 /* ── Timing ─────────────────────────────────────────────────────────────── */
 
@@ -90,6 +94,28 @@ static uint8_t  valid_bpm_count  = 0;
 
 static struct sensor_value ir_val;
 const struct device *dev = DEVICE_DT_GET_ANY(maxim_max30102);
+
+ /* ── Bandpass Filter State ───────────────────────────────────────────── */
+/* High-pass (DC removal) */
+static int32_t hp_prev_input  = 0;
+static int32_t hp_prev_output = 0;
+
+/* Low-pass smoothing */
+static int32_t lp_output      = 0;
+
+/*
+ * Tuning parameters (scaled integers)
+ *
+ * HP_ALPHA ≈ 0.97 → 970/1000
+ * LP_BETA  ≈ 0.10 → 100/1000
+ *
+ * You can tweak these later without touching logic.
+ */
+#define HP_ALPHA_NUM   950
+#define HP_ALPHA_DEN   1000
+
+#define LP_BETA_NUM    150
+#define LP_BETA_DEN    1000
 
 /* ══════════════════════════════════════════════════════════════════════════
  * DRIVER LAYER  (sample_fetch / channel_get / init / DT macro)
@@ -244,37 +270,69 @@ static int max30102_init(const struct device *dev)
 
 DT_INST_FOREACH_STATUS_OKAY(MAX30102_DEFINE)
 
+/*
+ * ppg_bandpass_filter()
+ *
+ * Implements:
+ *   High-pass: y[n] = x[n] - x[n-1] + α*y[n-1]
+ *   Low-pass : z[n] = z[n-1] + β*(y[n] - z[n-1])
+ *
+ * Input:  raw IR signal (int32)
+ * Output: filtered signal (int32)
+ */
+static inline int32_t ppg_bandpass_filter(int32_t x)
+{
+    /* ── High-pass (DC removal) ── */
+    int32_t hp = x - hp_prev_input +
+        (HP_ALPHA_NUM * hp_prev_output) / HP_ALPHA_DEN;
+
+    hp_prev_input  = x;
+    hp_prev_output = hp;
+
+    /* ── Low-pass (noise smoothing) ── */
+    lp_output = lp_output +
+        (LP_BETA_NUM * (hp - lp_output)) / LP_BETA_DEN;
+
+    return lp_output;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
  * APPLICATION LAYER  (IBI beat detection, BPM averaging)
  * ══════════════════════════════════════════════════════════════════════════ */
 
-/*
- * ibi_reset() - Restore IBI state variables to power-on defaults.
- *
- * Called at startup (ppg_init) and whenever 2.5 s pass with no beat.
- * Mirrors the Arduino ISR's "N > 2500" recovery block.
- */
+/* Zero-centered seeds — filtered signal oscillates around 0 */
+#define IBI_SEED_P       0
+#define IBI_SEED_T       0
+#define IBI_SEED_THRESH  0
+
+/* Minimum filtered-signal amplitude to accept a beat.
+ * Your raw swing is ~1000 counts; after HP+LP filtering expect ~300–600.
+ * Set this below your typical filtered amplitude. */
+#define MIN_PULSE_AMPLITUDE  100
+
+static bool ibi_seeded = false;
+
 static void ibi_reset(void)
 {
     thresh          = IBI_SEED_THRESH;
-    P_val           = IBI_SEED_MIDPOINT;
-    T_val           = IBI_SEED_MIDPOINT;
+    P_val           = IBI_SEED_P;
+    T_val           = IBI_SEED_T;
     last_beat_time  = sample_counter;
     first_beat      = true;
     second_beat     = false;
     pulse_flag      = false;
+    ibi_seeded      = false;
     latest_bpm      = -1;
     valid_bpm_count = 0;
+    filter_settled  = false;                             // ADD
+    filter_settle_end = sample_counter + PPG_FILTER_SETTLE_MS; // ADD
 }
 
 /* ── Work / Timer Plumbing ───────────────────────────────────────────────── */
 
 static struct k_work ppg_work;
 
-static void ppg_work_handler(struct k_work *work)
-{
-    ppg_read();
-}
+static void ppg_work_handler(struct k_work *work) { ppg_read(); }
 
 void PPG_handler(struct k_timer *timer_id)
 {
@@ -294,51 +352,28 @@ int ppg_init(int sample_rate_hz)
         return -1;
     }
 
-    ir_val.val1 = 0;
-    ir_val.val2 = 0;
-
-    /* Initialise IBI tracking state. */
+    ir_val.val1    = 0;
+    ir_val.val2    = 0;
     sample_counter = 0;
-    ibi            = 600;           /* 100 BPM seed — overwritten after 1st beat */
-    for (int i = 0; i < 10; i++) {
-        ibi_rate[i] = ibi;
-    }
+    ibi            = 600;
+    for (int i = 0; i < 10; i++) { ibi_rate[i] = ibi; }
+
+    /* Reset filter state */
+    hp_prev_input  = 0;
+    hp_prev_output = 0;
+    lp_output      = 0;
+
     ibi_reset();
 
     uint32_t period_us = 1000000U / (uint32_t)sample_rate_hz;
     k_work_init(&ppg_work, ppg_work_handler);
     k_timer_start(&ppg_timer, K_USEC(period_us), K_USEC(period_us));
 
-    printk("PPG: IBI mode, %d Hz (%d ms/sample), buffer=%d samples\n",
-           sample_rate_hz, MS_PER_SAMPLE, HR_BUFFER_SIZE);
+    printk("PPG: IBI mode, %d Hz (%d ms/sample)\n",
+           sample_rate_hz, MS_PER_SAMPLE);
     return 0;
 }
 
-static bool ibi_seeded = false;
-
-/*
- * ppg_read() - Called every MS_PER_SAMPLE ms by the work handler.
- *
- * Implements the PulseSensor IBI algorithm sample-by-sample, translated
- * from the Arduino Timer2 ISR.  Variable names are kept close to the
- * original (P→P_val, T→T_val, Pulse→pulse_flag, IBI→ibi, N→N) to make
- * side-by-side comparison straightforward.
- *
- * Signal path per call:
- *   1. Fetch one IR sample from the MAX30102.
- *   2. Finger-presence guard — bail out if IR is below HR_MIN_VALID_IR.
- *   3. Advance the ms clock (sample_counter).
- *   4. Track trough (T_val) in the falling portion of the wave.
- *   5. Track peak (P_val) in the rising portion.
- *   6. Upward threshold-crossing → beat detected:
- *        a. Compute IBI.
- *        b. Seed rate[] on second beat; discard IBI on first beat.
- *        c. Roll the 10-element rate array, compute average, derive BPM.
- *   7. Downward threshold-crossing → beat over:
- *        a. Compute amp = P_val − T_val.
- *        b. Set new thresh at 50 % of amp (adaptive threshold).
- *   8. 2.5 s timeout without a beat → full IBI reset.
- */
 void ppg_read(void)
 {
     if (sensor_sample_fetch(dev) < 0) {
@@ -347,136 +382,138 @@ void ppg_read(void)
     }
 
     sensor_channel_get(dev, SENSOR_CHAN_IR, &ir_val);
+    int32_t raw_signal = (int32_t)ir_val.val1;
 
-    int32_t signal = (int32_t)ir_val.val1;
-
-    /* ── 2. Finger-presence guard ── */
-    if (signal < HR_MIN_VALID_IR) {
-        /*
-         * No finger on sensor.  Hold state frozen; if the absence lasts
-         * long enough the 2.5 s timeout below will perform a full reset.
-         */
+    /* ── 1. Finger-presence guard (uses raw, pre-filter) ── */
+    if (raw_signal < HR_MIN_VALID_IR) {
         sample_counter += MS_PER_SAMPLE;
-        int32_t N = (int32_t)(sample_counter - last_beat_time);
-        if (N > 2500) {
+        if ((int32_t)(sample_counter - last_beat_time) > 2500) {
             printk("PPG: no finger / no beat for 2.5 s — resetting\n");
             ibi_reset();
         }
         return;
     }
 
+    /* ── 2. Filter — result is zero-centered AC signal ── */
+    int32_t signal = ppg_bandpass_filter(raw_signal);
+
+    /* ── 3. Seed P/T/thresh from first real filtered sample ── */
     if (!ibi_seeded) {
-        P_val       = signal;
-        T_val       = signal;
-        thresh      = signal;
-        ibi_seeded  = true;
+        P_val          = signal;
+        T_val          = signal;
+        thresh         = signal;   /* zero-centered starting threshold */
+        ibi_seeded     = true;
         sample_counter += MS_PER_SAMPLE;
         last_beat_time  = sample_counter;
+        printk("PPG: seeded thresh=%d from filtered signal\n", (int)thresh);
         return;
     }
 
-    /* ── 3. Advance ms clock ── */
+    /* ── 4. Advance ms clock ── */
     sample_counter += MS_PER_SAMPLE;
     int32_t N = (int32_t)(sample_counter - last_beat_time);
 
-    /* ── 4. Track trough ──
-     *
-     * Only update T_val when we are below thresh and past 3/5 of the last
-     * IBI — same dichrotic-notch avoidance as the Arduino original.
-     */
-    if (signal < thresh && N > (ibi / 5) * 3) {
-        if (signal < T_val) {
-            T_val = signal;
+    /* ── 4b. Filter settling guard ── */
+    if (!filter_settled) {
+        /* Track signal with P/T/thresh during transient so adaptive
+         * state is warm when detection starts */
+        P_val  = signal;
+        T_val  = signal;
+        thresh = signal;
+        if (sample_counter >= filter_settle_end) {
+            filter_settled = true;
+            last_beat_time = sample_counter;  /* reset beat clock too */
+            printk("PPG: filter settled, beat detection active\n");
         }
+        return;
     }
 
-    /* ── 5. Track peak ── */
+    /* ── 5. Track trough (only below thresh, past 3/5 of last IBI) ── */
+    if (signal < thresh && N > (ibi / 5) * 3) {
+        if (signal < T_val) T_val = signal;
+    }
+
+    /* ── 6. Track peak ── */
     if (signal > thresh && signal > P_val) {
         P_val = signal;
     }
 
-    /* ── 6. Upward threshold-crossing → beat detected ──────────────────── */
-    if (N > 250) {   /* 250 ms minimum — rejects >240 BPM noise */
-        if (signal > thresh && !pulse_flag && N > (ibi / 5) * 3) {
+    /* ── 7. Upward threshold-crossing → beat detected ── */
+    if (N > 250 && signal > thresh && !pulse_flag && N > (ibi / 5) * 3) {
 
-            pulse_flag     = true;
-            ibi            = (int32_t)(sample_counter - last_beat_time);
-            last_beat_time = sample_counter;
+        pulse_flag     = true;
+        ibi            = (int32_t)(sample_counter - last_beat_time);
+        last_beat_time = sample_counter;
 
-            /* ── 6b. Startup seeding ── */
-            if (second_beat) {
-                second_beat = false;
-                /* Fill all 10 slots with the first real IBI so the
-                 * running average starts at a plausible value. */
-                for (int i = 0; i < 10; i++) {
-                    ibi_rate[i] = ibi;
-                }
-            }
+        if (second_beat) {
+            second_beat = false;
+            /* Seed all 10 slots with this first real IBI rather than 600ms.
+            * This makes the average converge in ~3 beats instead of ~10. */
+            for (int i = 0; i < 10; i++) { ibi_rate[i] = ibi; }
+            // printk("PPG: first real IBI=%d ms, array seeded\n", (int)ibi);
+        }
 
-            if (first_beat) {
-                /* First crossing is always noisy — discard IBI, arm
-                 * second_beat flag, and return without updating BPM. */
-                first_beat  = false;
-                second_beat = true;
-                return;
-            }
+        if (first_beat) {
+            first_beat  = false;
+            second_beat = true;
+            return;
+        }
 
-            /* ── 6c. Rolling average of last 10 IBI values → BPM ── */
-            int32_t running_total = 0;
-            for (int i = 0; i < 9; i++) {
-                ibi_rate[i]    = ibi_rate[i + 1]; /* shift left, drop oldest */
-                running_total += ibi_rate[i];
-            }
-            ibi_rate[9]    = ibi;           /* append newest IBI        */
-            running_total += ibi_rate[9];
-            running_total /= 10;            /* average of 10 IBI values */
+        /* Rolling average → BPM */
+        int32_t running_total = 0;
+        for (int i = 0; i < 9; i++) {
+            ibi_rate[i]    = ibi_rate[i + 1];
+            running_total += ibi_rate[i];
+        }
+        ibi_rate[9]    = ibi;
+        running_total += ibi_rate[9];
+        running_total /= 10;
 
-            int32_t bpm = 60000 / running_total;
+        int32_t bpm = 60000 / (running_total * 2);
+        if (bpm >= HR_MIN_BPM && bpm <= HR_MAX_BPM) {
+            latest_bpm = bpm;
+            if (valid_bpm_count < 10) valid_bpm_count++;
 
-            if (bpm >= HR_MIN_BPM && bpm <= HR_MAX_BPM) {
-                latest_bpm = bpm;
-                if (valid_bpm_count < 10) {
-                    valid_bpm_count++;
-                }
-                printk("PPG: IBI=%d ms  BPM=%d\n", (int)ibi, (int)bpm);
+            /* Only report once we have enough real beats to trust the average.
+            * valid_bpm_count tracks real in-range readings since last reset. */
+            if (valid_bpm_count >= 4) {
+                printk("PPG: IBI=%d ms  BPM=%d (conf=%d%%)\n",
+                    (int)ibi, (int)bpm, (int)(valid_bpm_count * 10));
             } else {
-                printk("PPG: BPM %d out of range [%d–%d], discarding\n",
-                       (int)bpm, HR_MIN_BPM, HR_MAX_BPM);
+                printk("PPG: IBI=%d ms  BPM=%d (warming up %d/4)\n",
+                    (int)ibi, (int)bpm, (int)valid_bpm_count);
+                latest_bpm = -1;  /* don't expose to classifier until stable */
             }
         }
     }
 
-    /* ── 7. Downward threshold-crossing → beat is over ────────────────── */
+    /* ── 8. Downward threshold-crossing → beat over, update adaptive thresh ── */
     if (signal < thresh && pulse_flag) {
         pulse_flag = false;
+        amp        = P_val - T_val;
 
-        amp    = P_val - T_val;          /* amplitude of this pulse          */
-        thresh = amp / 2 + T_val;        /* new thresh at 50 % of amplitude  */
-        P_val  = thresh;                 /* reset peak for next beat         */
-        T_val  = thresh;                 /* reset trough for next beat       */
+        /* Reject beats with insufficient amplitude */
+        if (amp < MIN_PULSE_AMPLITUDE) {
+            printk("PPG: weak beat amp=%d — discarding\n", (int)amp);
+            P_val = signal;
+            T_val = signal;
+            return;
+        }
+
+        thresh = amp / 2 + T_val;   /* adaptive: 50% of P-T swing */
+        P_val  = thresh;
+        T_val  = thresh;
+        printk("PPG: beat over amp=%d new_thresh=%d\n", (int)amp, (int)thresh);
     }
 
-    /* ── 8. 2.5 s timeout — no beat detected ───────────────────────────── */
+    /* ── 9. 2.5 s timeout ── */
     if (N > 2500) {
         printk("PPG: no beat for 2.5 s — resetting IBI state\n");
         ibi_reset();
     }
 }
 
-/* ── Accessors ──────────────────────────────────────────────────────────── */
-
-struct sensor_value *ppg_get_data(void) { return &ir_val; }
-
-int32_t ppg_get_bpm(void) { return latest_bpm; }
-
-/*
- * ppg_get_confidence() - 0–100 warm-up confidence indicator.
- *
- * Returns the percentage of the 10-reading IBI history that has been
- * populated with real (range-validated) BPM values since the last reset.
- * 0 = just started / no finger; 100 = fully converged.
- */
-int32_t ppg_get_confidence(void)
-{
-    return (int32_t)valid_bpm_count * 10;  /* 0, 10, 20 … 100 */
-}
+/* ── Accessors ── */
+struct sensor_value *ppg_get_data(void)  { return &ir_val;      }
+int32_t ppg_get_bpm(void)               { return latest_bpm;    }
+int32_t ppg_get_confidence(void)        { return (int32_t)valid_bpm_count * 10; }

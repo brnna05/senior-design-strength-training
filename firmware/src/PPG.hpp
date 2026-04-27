@@ -6,6 +6,10 @@
 #ifndef PPG_H
 #define PPG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/sensor.h>
 
@@ -55,7 +59,7 @@
  */
 #define HR_BUFFER_SIZE   600
 
-#define HR_MIN_VALID_IR  20000
+#define HR_MIN_VALID_IR  2000
 
 /* ── LED Channel Enum ───────────────────────────────────────────────────── */
 enum max30102_led_channel {
@@ -96,5 +100,9 @@ struct sensor_value *ppg_get_data(void);
 int32_t ppg_get_bpm(void);
 
 int32_t ppg_get_confidence(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PPG_H */

@@ -11,4 +11,5 @@ target_sources(app PRIVATE
     src/ADC.c
     src/IMU.c
     src/PPG.cpp
+    src/classifier.c
 )
