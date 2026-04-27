@@ -1,4 +1,4 @@
-timestampe, emg voltage, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, ppg_ir
+timestamp (us), emg voltage, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, ppg_ir
 
 rtt_log_20260218_132615.csv, Mario, N/A
 rtt_log_20260218_133000.csv, Mario, 5lbs

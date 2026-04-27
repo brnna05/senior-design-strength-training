@@ -6,8 +6,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ── Sampling config ─────────────────────────────────────────────────────── */
-#define SEQUENCE_SAMPLES      64    /* power-of-2 window for EMG analysis     */
+#define SEQUENCE_SAMPLES      128    /* power-of-2 window for EMG analysis     */
 #define SEQUENCE_RESOLUTION   12
 
 /* ── ADC device-tree ─────────────────────────────────────────────────────── */
@@ -17,8 +21,11 @@
 
 /* ── EMG activation thresholds ───────────────────────────────────────────── */
 /* Tune these to your electrode placement / gain stage */
-#define EMG_ACTIVATION_THRESHOLD_MV   20   /* RMS above this = muscle active  */
-#define EMG_FATIGUE_ZCR_LOW           10   /* crossings/window below this = fatigue indicator */
+#define EMG_ACTIVATION_THRESHOLD_MV   90    // initial cold-start threshold
+#define EMG_ACTIVATION_MULTIPLIER     2     // threshold = baseline * this
+#define EMG_BASELINE_MIN_MV           15    // floor — never go below this
+#define EMG_BASELINE_MAX_MV           300   // ceiling — ignore outliers
+#define EMG_FATIGUE_ZCR_LOW           50
 
 /* ── EMG result struct ───────────────────────────────────────────────────── */
 /**
@@ -51,8 +58,8 @@ typedef struct {
     bool     fatigue_flag;      /* active + low ZCR heuristic                */
 } emg_metrics_t;
 
-#define EMG_WINDOW_SIZE (1<<12) // 4K
-#define EMG_ANALYSIS_SAMPLES  512 
+#define EMG_WINDOW_SIZE (1<<10) // 1k
+#define EMG_ANALYSIS_SAMPLES  256 
 
 extern emg_metrics_t emg_data;
 extern int32_t emg_window[];
@@ -70,5 +77,11 @@ int32_t *EMG_get_raw();
 int EMG_compute_from_window();
 
 emg_metrics_t *EMG_get_metrics();
+
+int32_t EMG_get_adaptive_threshold(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ADC_H_ */

@@ -3,41 +3,29 @@ import { View, Text, StyleSheet } from 'react-native';
 
 type MessageType = 'warning' | 'success' | 'error';
 
-import WarningIcon from '../assets/icons/warning.svg';
-import SuccessIcon from '../assets/icons/thumb_up.svg';
-import ErrorIcon from '../assets/icons/thumb_down.svg';
-
-const iconMap = {
-  warning: WarningIcon,
-  success: SuccessIcon,
-  error: ErrorIcon,
-} as const;
-
-
 interface InsightBoxProps {
   type: MessageType;
   message: string;
+  bpm: number;
 }
 
-// TODO: add icons for each type
-const InsightBox: React.FC<InsightBoxProps> = ({ type, message }) => {
-  const Icon = iconMap[type];
-
+const InsightBox: React.FC<InsightBoxProps> = ({ type, message, bpm }) => {
   return (
     <View style={[styles.container, styles[type]]}>
       <View style={styles.textContainer}>
         <Text style={styles.text}>{message}</Text>
       </View>
-
-      <Icon width={40} height={40} color={'black'} opacity={0.75}/>
+      <View style={styles.bpmContainer}>
+        <Text style={styles.bpmNumber}>{bpm}</Text>
+        <Text style={styles.bpmLabel}>BPM</Text>
+      </View>
     </View>
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
-    width: '85%', 
+    width: '85%',
     alignSelf: 'center',
     paddingVertical: 25,
     paddingHorizontal: 28,
@@ -57,6 +45,23 @@ const styles = StyleSheet.create({
     color: 'black',
     fontWeight: '500',
   },
+  bpmContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bpmNumber: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: 'black',
+    opacity: 0.75,
+  },
+  bpmLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'black',
+    opacity: 0.75,
+    letterSpacing: 1,
+  },
   warning: {
     backgroundColor: '#F1E5C4',
   },
@@ -67,6 +72,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#DCBDBD',
   },
 });
-
 
 export default InsightBox;

@@ -20,7 +20,14 @@
 / {
 	aliases {
 		adc0 = &adc;
-        imu0 = &lsm6dsl;
+        imu0 = &lsm6dso;
+	};
+
+	zephyr,user {
+		ble_led_gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+		imu_led_gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
+		ppg_led_gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+		emg_led_gpios = <&gpio1 8 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -34,7 +41,7 @@
 		zephyr,reference = "ADC_REF_INTERNAL";
 		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
 		zephyr,input-positive = <NRF_SAADC_AIN2>; /* P1.06 */
-        zephyr,oversampling = <6>; // 64 samples
+        zephyr,oversampling = <7>; // 128 samples
 	};
 };
 
@@ -61,12 +68,16 @@
     pinctrl-0 = <&i2c21_default>;
     pinctrl-1 = <&i2c21_sleep>;
     pinctrl-names = "default", "sleep";
-    lsm6dsl: lsm6dsl@6a {
-        compatible = "st,lsm6dsl";
+
+    lsm6dso: lsm6dso@6a {
+        compatible = "st,lsm6dso";
         reg = <0x6a>;
         status = "okay";
         irq-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
+        accel-odr = <4>;
+        gyro-odr = <4>;
     };
+
 
     max30102@57 {
         compatible = "maxim,max30102";
@@ -78,8 +89,12 @@
         smp-ave = <0>; // no sample averaging
         fifo-rollover-en; // overwrite old data when FIFO full
         fifo-a-full = <0xf>; // FIFO almost full threshold
-        led1-pa = <0x1f>;    
-        led2-pa = <0x1f>;
+        led1-pa = <0x2f>;    
+        led2-pa = <0x2f>;
         
     };
+};
+
+&button0 {
+	status = "okay";
 };

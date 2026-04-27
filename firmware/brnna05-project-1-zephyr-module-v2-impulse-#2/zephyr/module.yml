@@ -1,0 +1,5 @@
+name: brnna05-project-1 v2
+build:
+  cmake: .
+  depends:
+    - edge-impulse-sdk-zephyr

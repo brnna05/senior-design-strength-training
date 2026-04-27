@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,28 @@ import {
   Modal,
 } from 'react-native';
 import { useWorkouts, CompletedSet } from '../context/WorkoutContext';
+import { useBLE } from '../context/BLEContext';
+import InsightBox from '../components/InsightBox';
 
 type SessionPhase = 'idle' | 'working' | 'break' | 'done';
 
 const DEFAULT_SETS = 3;
 const DEFAULT_REPS = 10;
 const BREAK_DURATION_SEC = 60;
+
+const REP_SVC_UUID  = '12340001-0000-0000-0000-000000000001';
+const REP_CHAR_UUID = '12340001-0000-0000-0000-000000000002';
+
+// Byte protocol: [msgType, value]
+const MSG_REP     = 0x01; // value unused
+const MSG_BPM     = 0x02; // value = bpm
+const MSG_FATIGUE = 0x03; // value: 0 = none, 1 = some, 2 = fatigued
+
+const FATIGUE_INSIGHT: Record<number, { type: 'success' | 'warning' | 'error'; message: string }> = {
+  0: { type: 'success', message: 'No fatigue detected. Keep it up!' },
+  1: { type: 'warning', message: 'Some fatigue detected. Consider slowing your pace.' },
+  2: { type: 'error',   message: 'High fatigue detected. Take a break if needed.' },
+};
 
 interface StepperProps {
   label: string;
@@ -43,6 +59,7 @@ const Stepper: React.FC<StepperProps> = ({ label, value, onDecrement, onIncremen
 
 const SessionScreen = () => {
   const { saveWorkout } = useWorkouts();
+  const { subscribeToNotifications, isConnected } = useBLE();
 
   const [phase, setPhase] = useState<SessionPhase>('idle');
   const [totalSets, setTotalSets] = useState(DEFAULT_SETS);
@@ -55,6 +72,62 @@ const SessionScreen = () => {
   const [breakSecondsLeft, setBreakSecondsLeft] = useState(BREAK_DURATION_SEC);
   const [breakTimer, setBreakTimer] = useState<ReturnType<typeof setInterval> | null>(null);
   const [summaryVisible, setSummaryVisible] = useState(false);
+  const [side, setSide] = useState<'Left' | 'Right'>('Left');
+  const [bpm, setBpm] = useState<number | null>(null);
+  const [insight, setInsight] = useState<{ type: 'warning' | 'success' | 'error'; message: string } | null>(null);
+
+  const completeRepRef = useRef(completeRep);
+  const phaseRef = useRef(phase);
+
+  useEffect(() => { completeRepRef.current = completeRep; });
+  useEffect(() => { phaseRef.current = phase; });
+
+  useEffect(() => {
+    if (!isConnected) return;
+
+    console.log('Setting up BLE subscription');
+    const subscription = subscribeToNotifications(
+      REP_SVC_UUID,
+      REP_CHAR_UUID,
+      (data: { [index: number]: number; length: number }) => {
+        if (!data || data.length < 1) return;
+
+        const msgType = data[0];
+        const value   = data[1] ?? 0;
+
+        console.log(`BLE msg type=0x${msgType.toString(16)} value=${value} phase=${phaseRef.current}`);
+
+        if (msgType === MSG_REP) {
+          if (phaseRef.current === 'working') {
+            completeRepRef.current();
+          }
+
+        } else if (msgType === MSG_BPM) {
+          setBpm(value);
+
+        } else if (msgType === MSG_FATIGUE) {
+          const fatigueInsight = FATIGUE_INSIGHT[value];
+          if (fatigueInsight) {
+            setInsight(fatigueInsight);
+          } else {
+            console.warn(`Unknown fatigue value: ${value}`);
+          }
+
+        } else {
+          console.warn(`Unknown BLE message type: 0x${msgType.toString(16)}`);
+        }
+      }
+    );
+
+    if (!subscription) {
+      console.warn('Subscription returned undefined — device may not have services discovered');
+    }
+
+    return () => {
+      console.log('Removing BLE subscription');
+      subscription?.remove();
+    };
+  }, [isConnected, subscribeToNotifications]);
 
   const startWorkout = () => {
     setPhase('working');
@@ -62,9 +135,11 @@ const SessionScreen = () => {
     setCurrentRep(1);
     setCompletedSets([]);
     setSetLog([]);
+    setBpm(null);
+    setInsight(null);
   };
 
-  const completeRep = () => {
+  function completeRep() {
     if (currentRep < totalReps) {
       setCurrentRep(r => r + 1);
     } else {
@@ -83,7 +158,7 @@ const SessionScreen = () => {
         endWorkout(newSetLog);
       }
     }
-  };
+  }
 
   const startBreakTimer = () => {
     setBreakSecondsLeft(BREAK_DURATION_SEC);
@@ -99,6 +174,7 @@ const SessionScreen = () => {
   const returnFromBreak = () => {
     if (breakTimer) clearInterval(breakTimer);
     setBreakTimer(null);
+    setInsight(null);
     setPhase('working');
   };
 
@@ -119,6 +195,7 @@ const SessionScreen = () => {
         exercise: 'Bicep Curl',
         sets: logWithPartial,
         totalReps: logWithPartial.reduce((sum, s) => sum + s.repsCompleted, 0),
+        side,
       });
     }
 
@@ -142,14 +219,17 @@ const SessionScreen = () => {
     setSetLog([]);
     setTotalSets(DEFAULT_SETS);
     setTotalReps(DEFAULT_REPS);
+    setBpm(null);
+    setInsight(null);
   };
 
   const setsCompleted = completedSets.length;
   const progressPercent =
     phase === 'working' || phase === 'break'
-      ? ((setsCompleted * totalReps + (currentRep - 1)) /
-      (totalSets * totalReps)) * 100
+      ? ((setsCompleted * totalReps + (currentRep - 1)) / (totalSets * totalReps)) * 100
       : 0;
+
+  // ── idle ────────────────────────────────────────────────────────────────────
 
   if (phase === 'idle') {
     return (
@@ -177,6 +257,21 @@ const SessionScreen = () => {
 
           <Text style={styles.subLabel}>{totalSets} sets × {totalReps} reps</Text>
 
+          <View style={styles.stepperRow}>
+            <View style={styles.sideToggle}>
+              {(['Left', 'Right'] as const).map(s => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.sideBtn, side === s && styles.sideBtnActive]}
+                  onPress={() => setSide(s)}>
+                  <Text style={[styles.sideBtnText, side === s && styles.sideBtnTextActive]}>
+                    {s}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           <TouchableOpacity style={styles.startButton} onPress={startWorkout}>
             <Text style={styles.startButtonText}>Start Workout</Text>
           </TouchableOpacity>
@@ -184,6 +279,8 @@ const SessionScreen = () => {
       </View>
     );
   }
+
+  // ── break ───────────────────────────────────────────────────────────────────
 
   if (phase === 'break') {
     return (
@@ -208,10 +305,8 @@ const SessionScreen = () => {
     );
   }
 
-  /* TODO:
-   * - change to update based on wearable device data instead of button presses
-   * - add warnings if form is incorrect or if user is struggling to complete reps
-   */
+  // ── working ─────────────────────────────────────────────────────────────────
+
   if (phase === 'working') {
     return (
       <View style={styles.container}>
@@ -221,6 +316,13 @@ const SessionScreen = () => {
         </View>
         <Text style={styles.progressText}>{setsCompleted} / {totalSets} sets complete</Text>
         <View style={styles.centerContent}>
+          {insight && (
+            <InsightBox
+              type={insight.type}
+              message={insight.message}
+              bpm={bpm ?? 0}
+            />
+          )}
           <Text style={styles.exerciseLabel}>Bicep Curl</Text>
           <View style={styles.statRow}>
             <View style={styles.statBox}>
@@ -268,6 +370,8 @@ const SessionScreen = () => {
     );
   }
 
+  // ── done / summary ───────────────────────────────────────────────────────────
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Live Session</Text>
@@ -287,6 +391,7 @@ const SessionScreen = () => {
                 Set {s.setNumber}: {s.repsCompleted} reps
               </Text>
             ))}
+            <Text style={styles.summaryLine}>Side: {side} Arm</Text>
             <TouchableOpacity style={styles.primaryButton} onPress={resetSession}>
               <Text style={styles.primaryButtonText}>Done</Text>
             </TouchableOpacity>
@@ -357,7 +462,7 @@ const styles = StyleSheet.create({
   },
   stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
   stepperDivider: { height: 1, backgroundColor: '#E0E0E0' },
-  stepperLabel: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
+  stepperLabel: { fontSize: 16, fontWeight: '600', color: '#1A1A1A', padding: 5 },
   stepperControls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepperBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#D6E0D3',
@@ -366,6 +471,14 @@ const styles = StyleSheet.create({
   stepperBtnDisabled: { backgroundColor: '#ECECEC', borderColor: '#C0C0C0' },
   stepperBtnText: { fontSize: 20, fontWeight: '600', color: '#1A1A1A', lineHeight: 22 },
   stepperValue: { fontSize: 22, fontWeight: '700', color: '#1A1A1A', minWidth: 32, textAlign: 'center' },
+  sideToggle: {
+    flexDirection: 'row', borderRadius: 20, borderWidth: 1,
+    borderColor: '#636363', overflow: 'hidden',
+  },
+  sideBtn: { paddingHorizontal: 30, paddingVertical: 10, backgroundColor: 'transparent' },
+  sideBtnActive: { backgroundColor: '#D6E0D3' },
+  sideBtnText: { fontSize: 15, fontWeight: '600', color: '#888' },
+  sideBtnTextActive: { color: '#1A1A1A' },
 });
 
 export default SessionScreen;
